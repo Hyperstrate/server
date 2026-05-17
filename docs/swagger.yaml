@@ -1,0 +1,7148 @@
+basePath: /
+definitions:
+  hyperstrate_server_internal_modules_ai_application.AddConversationMessageInput:
+    properties:
+      content:
+        type: string
+      role:
+        enum:
+        - user
+        - assistant
+        type: string
+    required:
+    - content
+    - role
+    type: object
+  hyperstrate_server_internal_modules_ai_application.CreateConversationInput:
+    properties:
+      modelId:
+        type: string
+      title:
+        type: string
+    required:
+    - modelId
+    type: object
+  hyperstrate_server_internal_modules_ai_application.CreateMCPServerInput:
+    properties:
+      authHeader:
+        maxLength: 255
+        type: string
+      authToken:
+        type: string
+      authType:
+        enum:
+        - none
+        - bearer
+        - api_key
+        type: string
+      description:
+        maxLength: 1000
+        type: string
+      extraHeaders:
+        additionalProperties:
+          type: string
+        type: object
+      name:
+        maxLength: 255
+        type: string
+      timeoutSecs:
+        minimum: 0
+        type: integer
+      url:
+        type: string
+    required:
+    - name
+    - url
+    type: object
+  hyperstrate_server_internal_modules_ai_application.HistoryMessage:
+    properties:
+      content:
+        type: string
+      role:
+        type: string
+      tool_call_id:
+        type: string
+      tool_calls:
+        items:
+          type: integer
+        type: array
+      tool_name:
+        type: string
+    type: object
+  hyperstrate_server_internal_modules_ai_application.InferRequest:
+    properties:
+      conversationId:
+        type: string
+      fields:
+        additionalProperties:
+          type: string
+        type: object
+      history:
+        items:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_ai_application.HistoryMessage'
+        type: array
+      modelId:
+        type: string
+      options:
+        additionalProperties: {}
+        type: object
+    required:
+    - modelId
+    type: object
+  hyperstrate_server_internal_modules_ai_application.InferenceResult:
+    properties:
+      cachedInputTokens:
+        type: integer
+      content:
+        type: string
+      costUsd:
+        type: number
+      inputTokens:
+        type: integer
+      modelDefKey:
+        type: string
+      outputTokens:
+        type: integer
+      provider:
+        type: string
+      raw:
+        additionalProperties: {}
+        type: object
+      toolCalls:
+        items:
+          type: integer
+        type: array
+    required:
+    - content
+    type: object
+  hyperstrate_server_internal_modules_ai_application.MCPServerResponse:
+    properties:
+      authHeader:
+        type: string
+      authType:
+        type: string
+      createdAt:
+        type: string
+      description:
+        type: string
+      extraHeaders:
+        additionalProperties:
+          type: string
+        type: object
+      id:
+        type: string
+      modifiedAt:
+        type: string
+      name:
+        type: string
+      timeoutSecs:
+        type: integer
+      url:
+        type: string
+    type: object
+  hyperstrate_server_internal_modules_ai_application.ModelConfigurationResponse:
+    properties:
+      apiKeyPoolSize:
+        description: APIKeyPoolSize is the number of keys in the rotation pool (0
+          = pool unused).
+        type: integer
+      baseUrl:
+        type: string
+      extraHeaders:
+        additionalProperties:
+          type: string
+        type: object
+      hasApiKey:
+        type: boolean
+      hasApiSecret:
+        type: boolean
+      id:
+        type: string
+      modelId:
+        type: string
+      timeoutSecs:
+        type: integer
+    required:
+    - baseUrl
+    - hasApiKey
+    - hasApiSecret
+    - id
+    - modelId
+    - timeoutSecs
+    type: object
+  hyperstrate_server_internal_modules_ai_application.ModelResponse:
+    properties:
+      alias:
+        type: string
+      capabilities:
+        items:
+          type: string
+        type: array
+      createdAt:
+        type: string
+      credentialFields:
+        items:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_ai_domain.CredentialFieldDef'
+        type: array
+      defaultBaseUrl:
+        type: string
+      description:
+        type: string
+      displayName:
+        type: string
+      hasConfiguration:
+        type: boolean
+      id:
+        type: string
+      inputFields:
+        items:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_ai_domain.InputFieldDef'
+        type: array
+      modelDefinitionKey:
+        type: string
+      modelId:
+        type: string
+      modifiedAt:
+        type: string
+      provider:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_ai_domain.Provider'
+    required:
+    - createdAt
+    - credentialFields
+    - displayName
+    - hasConfiguration
+    - id
+    - inputFields
+    - modelDefinitionKey
+    - modelId
+    - modifiedAt
+    - provider
+    type: object
+  hyperstrate_server_internal_modules_ai_application.RegisterModelInput:
+    properties:
+      alias:
+        type: string
+      modelDefinitionKey:
+        type: string
+    required:
+    - modelDefinitionKey
+    type: object
+  hyperstrate_server_internal_modules_ai_application.SetModelConfigurationInput:
+    properties:
+      apiKey:
+        type: string
+      apiKeyPool:
+        description: |-
+          APIKeyPool is an optional list of API keys for round-robin key rotation.
+          When non-empty, the proxy ignores APIKey and cycles through the pool.
+          Omit to keep the existing pool; pass an empty array [] to clear it.
+        items:
+          type: string
+        type: array
+      apiSecret:
+        type: string
+      baseUrl:
+        type: string
+      extraHeaders:
+        additionalProperties:
+          type: string
+        type: object
+      timeoutSecs:
+        type: integer
+    required:
+    - baseUrl
+    type: object
+  hyperstrate_server_internal_modules_ai_application.SubmitJobRequest:
+    properties:
+      callbackUrl:
+        type: string
+      fields:
+        additionalProperties:
+          type: string
+        type: object
+      modelId:
+        type: string
+      options:
+        additionalProperties: {}
+        type: object
+    required:
+    - modelId
+    type: object
+  hyperstrate_server_internal_modules_ai_application.UpdateMCPServerInput:
+    properties:
+      authHeader:
+        maxLength: 255
+        type: string
+      authToken:
+        type: string
+      authType:
+        enum:
+        - none
+        - bearer
+        - api_key
+        type: string
+      description:
+        maxLength: 1000
+        type: string
+      extraHeaders:
+        additionalProperties:
+          type: string
+        type: object
+      name:
+        maxLength: 255
+        type: string
+      timeoutSecs:
+        minimum: 0
+        type: integer
+      url:
+        type: string
+    type: object
+  hyperstrate_server_internal_modules_ai_application.UpdateModelInput:
+    properties:
+      alias:
+        type: string
+    type: object
+  hyperstrate_server_internal_modules_ai_domain.ConversationMessage:
+    properties:
+      content:
+        type: string
+      conversationId:
+        type: string
+      createdAt:
+        type: string
+      fields:
+        type: string
+      id:
+        type: string
+      role:
+        type: string
+    type: object
+  hyperstrate_server_internal_modules_ai_domain.CredentialFieldDef:
+    properties:
+      description:
+        type: string
+      key:
+        type: string
+      label:
+        type: string
+      required:
+        type: boolean
+    required:
+    - key
+    - label
+    type: object
+  hyperstrate_server_internal_modules_ai_domain.InputFieldDef:
+    properties:
+      description:
+        type: string
+      key:
+        type: string
+      label:
+        type: string
+      maxLength:
+        type: integer
+      required:
+        type: boolean
+      type:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_ai_domain.InputType'
+    required:
+    - key
+    - label
+    - type
+    type: object
+  hyperstrate_server_internal_modules_ai_domain.InputType:
+    enum:
+    - text
+    - image
+    - file
+    - audio
+    - video
+    type: string
+    x-enum-varnames:
+    - InputTypeText
+    - InputTypeImage
+    - InputTypeFile
+    - InputTypeAudio
+    - InputTypeVideo
+  hyperstrate_server_internal_modules_ai_domain.Job:
+    properties:
+      callbackUrl:
+        type: string
+      createdAt:
+        type: string
+      error:
+        type: string
+      fields:
+        $ref: '#/definitions/hyperstrate_server_internal_shared_dbtype.JSONStringMap'
+      finishedAt:
+        type: string
+      id:
+        type: string
+      modelId:
+        type: string
+      modifiedAt:
+        type: string
+      options:
+        $ref: '#/definitions/hyperstrate_server_internal_shared_dbtype.JSONMap'
+      result:
+        type: string
+      startedAt:
+        type: string
+      status:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_ai_domain.JobStatus'
+    type: object
+  hyperstrate_server_internal_modules_ai_domain.JobStatus:
+    enum:
+    - PENDING
+    - RUNNING
+    - COMPLETED
+    - FAILED
+    type: string
+    x-enum-varnames:
+    - JobStatusPending
+    - JobStatusRunning
+    - JobStatusCompleted
+    - JobStatusFailed
+  hyperstrate_server_internal_modules_ai_domain.ModelDefinition:
+    properties:
+      capabilities:
+        description: Capabilities is a set of feature flags (e.g. "vision", "reasoning",
+          "function_calling").
+        items:
+          type: string
+        type: array
+      contextWindowTokens:
+        description: ContextWindowTokens is the maximum token count accepted by the
+          model.
+        type: integer
+      credentialFields:
+        description: |-
+          CredentialFields lists the credential inputs shown when configuring this model.
+          Only the fields defined here are rendered — e.g. OpenAI shows only "API Key",
+          Kling shows "Access Key ID" + "Secret Access Key", Ollama shows nothing.
+        items:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_ai_domain.CredentialFieldDef'
+        type: array
+      defaultBaseUrl:
+        description: DefaultBaseURL is the provider's canonical API endpoint, pre-filled
+          in the configuration UI.
+        type: string
+      description:
+        type: string
+      displayName:
+        type: string
+      inputFields:
+        items:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_ai_domain.InputFieldDef'
+        type: array
+      inputPricePer1MTokens:
+        description: Pricing in USD per 1M tokens (0 = unknown/free).
+        type: number
+      key:
+        type: string
+      modelId:
+        description: identifier sent to the upstream API (e.g. "gpt-4o")
+        type: string
+      outputPricePer1MTokens:
+        type: number
+      provider:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_ai_domain.Provider'
+    required:
+    - displayName
+    - inputFields
+    - key
+    - modelId
+    - provider
+    type: object
+  hyperstrate_server_internal_modules_ai_domain.ModelKeyRotation:
+    properties:
+      createdAt:
+        type: string
+      graceEndsAt:
+        type: string
+      id:
+        type: string
+      modelId:
+        type: string
+      newKeyHint:
+        description: last 4 chars of the new key
+        type: string
+      oldKeyHint:
+        description: last 4 chars of the old key
+        type: string
+    type: object
+  hyperstrate_server_internal_modules_ai_domain.Provider:
+    enum:
+    - CUSTOM
+    - OPENAI
+    - ANTHROPIC
+    - MISTRAL
+    - OLLAMA
+    - GEMINI
+    - KLING
+    - VLLM
+    - LOCALAI
+    - AZURE_OPENAI
+    - GROQ
+    - COHERE
+    - BEDROCK
+    type: string
+    x-enum-varnames:
+    - ProviderCustom
+    - ProviderOpenAi
+    - ProviderAnthropic
+    - ProviderMistral
+    - ProviderOllama
+    - ProviderGemini
+    - ProviderKling
+    - ProviderVLLM
+    - ProviderLocalAI
+    - ProviderAzureOpenAI
+    - ProviderGroq
+    - ProviderCohere
+    - ProviderBedrock
+  hyperstrate_server_internal_modules_auth_application.CreateAPIKeyInput:
+    properties:
+      description:
+        type: string
+      expiresAt:
+        type: string
+      name:
+        maxLength: 255
+        type: string
+      routerId:
+        type: string
+      scope:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_auth_domain.APIKeyScope'
+      teamId:
+        type: string
+      virtualKeyId:
+        type: string
+    required:
+    - name
+    - teamId
+    type: object
+  hyperstrate_server_internal_modules_auth_application.CreateOrganizationInput:
+    properties:
+      name:
+        maxLength: 255
+        type: string
+    required:
+    - name
+    type: object
+  hyperstrate_server_internal_modules_auth_application.CreateTeamInput:
+    properties:
+      description:
+        type: string
+      maxCostUsd:
+        minimum: 0
+        type: number
+      maxRequests:
+        minimum: 0
+        type: integer
+      name:
+        maxLength: 255
+        type: string
+    required:
+    - name
+    type: object
+  hyperstrate_server_internal_modules_auth_application.CreateVirtualKeyInput:
+    properties:
+      description:
+        type: string
+      maxCostUsd:
+        minimum: 0
+        type: number
+      maxRequests:
+        minimum: 0
+        type: integer
+      name:
+        type: string
+      rateLimitRps:
+        minimum: 0
+        type: number
+      resetPeriod:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_auth_domain.ResetPeriod'
+      routerId:
+        type: string
+      teamId:
+        type: string
+    required:
+    - name
+    - routerId
+    type: object
+  hyperstrate_server_internal_modules_auth_application.OrganizationResponse:
+    properties:
+      createdAt:
+        type: string
+      id:
+        type: string
+      isEnabled:
+        type: boolean
+      modifiedAt:
+        type: string
+      name:
+        type: string
+      slug:
+        type: string
+    required:
+    - createdAt
+    - id
+    - isEnabled
+    - modifiedAt
+    - name
+    - slug
+    type: object
+  hyperstrate_server_internal_modules_auth_application.SessionResponse:
+    properties:
+      token:
+        type: string
+      user:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_auth_application.UserResponse'
+    type: object
+  hyperstrate_server_internal_modules_auth_application.SetupInput:
+    properties:
+      orgName:
+        maxLength: 255
+        type: string
+    required:
+    - orgName
+    type: object
+  hyperstrate_server_internal_modules_auth_application.SetupStatusResponse:
+    properties:
+      required:
+        type: boolean
+    required:
+    - required
+    type: object
+  hyperstrate_server_internal_modules_auth_application.TeamResponse:
+    properties:
+      createdAt:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      isEnabled:
+        type: boolean
+      maxCostUsd:
+        type: number
+      maxRequests:
+        type: integer
+      modifiedAt:
+        type: string
+      name:
+        type: string
+      orgId:
+        type: string
+    required:
+    - createdAt
+    - description
+    - id
+    - isEnabled
+    - maxCostUsd
+    - maxRequests
+    - modifiedAt
+    - name
+    - orgId
+    type: object
+  hyperstrate_server_internal_modules_auth_application.UpdateOrganizationInput:
+    properties:
+      isEnabled:
+        type: boolean
+      name:
+        type: string
+    type: object
+  hyperstrate_server_internal_modules_auth_application.UpdateTeamInput:
+    properties:
+      description:
+        type: string
+      isEnabled:
+        type: boolean
+      maxCostUsd:
+        type: number
+      maxRequests:
+        type: integer
+      name:
+        type: string
+    type: object
+  hyperstrate_server_internal_modules_auth_application.UpdateUserInput:
+    properties:
+      orgId:
+        type: string
+      role:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_auth_domain.UserRole'
+    type: object
+  hyperstrate_server_internal_modules_auth_application.UpdateVirtualKeyInput:
+    properties:
+      description:
+        type: string
+      isEnabled:
+        type: boolean
+      maxCostUsd:
+        type: number
+      maxRequests:
+        type: integer
+      name:
+        type: string
+      rateLimitRps:
+        type: number
+      resetPeriod:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_auth_domain.ResetPeriod'
+    type: object
+  hyperstrate_server_internal_modules_auth_application.UserResponse:
+    properties:
+      avatar:
+        type: string
+      createdAt:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      lastLoginAt:
+        type: string
+      modifiedAt:
+        type: string
+      name:
+        type: string
+      orgId:
+        type: string
+      role:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_auth_domain.UserRole'
+    required:
+    - avatar
+    - createdAt
+    - email
+    - id
+    - modifiedAt
+    - name
+    - orgId
+    - role
+    type: object
+  hyperstrate_server_internal_modules_auth_domain.APIKeyScope:
+    enum:
+    - router
+    - global
+    type: string
+    x-enum-varnames:
+    - APIKeyScopeRouter
+    - APIKeyScopeGlobal
+  hyperstrate_server_internal_modules_auth_domain.OIDCGroupMapping:
+    properties:
+      createdAt:
+        type: string
+      groupName:
+        type: string
+      id:
+        type: string
+      orgId:
+        type: string
+      teamId:
+        type: string
+    type: object
+  hyperstrate_server_internal_modules_auth_domain.ResetPeriod:
+    enum:
+    - ""
+    - daily
+    - weekly
+    - monthly
+    type: string
+    x-enum-varnames:
+    - ResetPeriodNone
+    - ResetPeriodDaily
+    - ResetPeriodWeekly
+    - ResetPeriodMonthly
+  hyperstrate_server_internal_modules_auth_domain.UserRole:
+    enum:
+    - admin
+    - member
+    type: string
+    x-enum-varnames:
+    - UserRoleAdmin
+    - UserRoleMember
+  hyperstrate_server_internal_modules_observability_domain.ABVariantStats:
+    properties:
+      avgLatencyMs:
+        type: number
+      costUsd:
+        type: number
+      errorCount:
+        type: integer
+      requests:
+        type: integer
+      totalTokens:
+        type: integer
+      variant:
+        type: string
+    type: object
+  hyperstrate_server_internal_modules_observability_domain.AgentSessionEvent:
+    properties:
+      agent:
+        type: string
+      agentSessionId:
+        type: string
+      createdAt:
+        type: string
+      detail:
+        type: string
+      eventType:
+        type: string
+      id:
+        type: string
+      orgId:
+        type: string
+      routerId:
+        type: string
+      teamId:
+        type: string
+      userId:
+        type: string
+      virtualKeyId:
+        type: string
+    type: object
+  hyperstrate_server_internal_modules_observability_domain.AgentSessionInsights:
+    properties:
+      compressionEvents:
+        items:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_observability_domain.CompressionEvent'
+        type: array
+      contextHealthScore:
+        type: number
+      costlyPrompts:
+        items:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_observability_domain.CostlyPrompt'
+        type: array
+      events:
+        items:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_observability_domain.AgentSessionEvent'
+        type: array
+      loopDetections:
+        items:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_observability_domain.LoopDetection'
+        type: array
+      qualityScore:
+        type: number
+      sessionId:
+        type: string
+      subagents:
+        items:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_observability_domain.SubagentBreakdown'
+        type: array
+      toolArchives:
+        items:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_observability_domain.ToolCallArchive'
+        type: array
+    type: object
+  hyperstrate_server_internal_modules_observability_domain.AgentSessionSummary:
+    properties:
+      agent:
+        type: string
+      avgContextFillPct:
+        type: number
+      avgQualityScore:
+        type: number
+      cacheHits:
+        type: integer
+      cachedInputTokens:
+        type: integer
+      checkpoints:
+        type: integer
+      compressionEvents:
+        type: integer
+      compressionSavedChars:
+        type: integer
+      costUsd:
+        type: number
+      errorCount:
+        type: integer
+      inputTokens:
+        type: integer
+      lastSeenAt:
+        type: string
+      loopCount:
+        type: integer
+      outputTokens:
+        type: integer
+      routerId:
+        type: string
+      sessionId:
+        type: string
+      startedAt:
+        type: string
+      subagentCostUsd:
+        type: number
+      teamId:
+        type: string
+      toolCallCount:
+        type: integer
+      toolResultChars:
+        type: integer
+      totalTokens:
+        type: integer
+      turns:
+        type: integer
+      userId:
+        type: string
+      virtualKeyId:
+        type: string
+    type: object
+  hyperstrate_server_internal_modules_observability_domain.AggregatedUsage:
+    properties:
+      avgLatencyMs:
+        type: number
+      bucket:
+        description: time bucket (e.g. "2026-04-26T10:00")
+        type: string
+      costUsd:
+        type: number
+      errorCount:
+        type: integer
+      inputTokens:
+        type: integer
+      outputTokens:
+        type: integer
+      requests:
+        type: integer
+    type: object
+  hyperstrate_server_internal_modules_observability_domain.AuditLog:
+    properties:
+      action:
+        type: string
+      createdAt:
+        type: string
+      details:
+        type: string
+      id:
+        type: string
+      ipAddress:
+        type: string
+      orgId:
+        type: string
+      resource:
+        type: string
+      resourceId:
+        type: string
+      userEmail:
+        type: string
+    type: object
+  hyperstrate_server_internal_modules_observability_domain.CacheStats:
+    properties:
+      cacheHits:
+        type: integer
+      exactHits:
+        type: integer
+      hitRatePct:
+        type: number
+      semanticHits:
+        type: integer
+      totalRequests:
+        type: integer
+    type: object
+  hyperstrate_server_internal_modules_observability_domain.CompressionEvent:
+    properties:
+      afterChars:
+        type: integer
+      agentSessionId:
+        type: string
+      beforeChars:
+        type: integer
+      createdAt:
+        type: string
+      detail:
+        type: string
+      estimatedTokensSaved:
+        type: integer
+      exact:
+        type: boolean
+      featureName:
+        type: string
+      id:
+        type: string
+      logId:
+        type: string
+      orgId:
+        type: string
+      qualityScore:
+        type: integer
+      routerId:
+        type: string
+      savedChars:
+        type: integer
+    type: object
+  hyperstrate_server_internal_modules_observability_domain.CostlyPrompt:
+    properties:
+      agent:
+        type: string
+      agentSessionId:
+        type: string
+      costUsd:
+        type: number
+      createdAt:
+        type: string
+      logId:
+        type: string
+      modelDefKey:
+        type: string
+      promptPreview:
+        type: string
+      routerId:
+        type: string
+      totalTokens:
+        type: integer
+    type: object
+  hyperstrate_server_internal_modules_observability_domain.InferenceLog:
+    properties:
+      abVariant:
+        type: string
+      agent:
+        type: string
+      agentRole:
+        type: string
+      agentSessionId:
+        type: string
+      cacheHit:
+        description: CacheHit is true when the response was served from cache (exact
+          or semantic).
+        type: boolean
+      cacheHitType:
+        description: CacheHitType is "exact", "semantic", or "" for a cache miss.
+        type: string
+      cachedInputTokens:
+        type: integer
+      contextFillPct:
+        type: number
+      costUsd:
+        type: number
+      createdAt:
+        type: string
+      errorMessage:
+        type: string
+      feedback:
+        description: 'Feedback is the user''s quality signal: 1=positive, -1=negative,
+          0=none.'
+        type: integer
+      id:
+        type: string
+      inputTokens:
+        type: integer
+      latencyMs:
+        type: integer
+      loopDetected:
+        type: boolean
+      loopReason:
+        type: string
+      modelDefKey:
+        type: string
+      modelId:
+        type: string
+      orgId:
+        type: string
+      outputTokens:
+        type: integer
+      parentSessionId:
+        type: string
+      pipelineTrace:
+        type: string
+      provider:
+        type: string
+      qualityScore:
+        type: integer
+      routerId:
+        type: string
+      selectedTargetId:
+        type: string
+      source:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_observability_domain.Source'
+      status:
+        type: string
+      teamId:
+        type: string
+      toolCallCount:
+        type: integer
+      toolResultChars:
+        type: integer
+      totalTokens:
+        type: integer
+      ttftMs:
+        description: TTFTMs is the time-to-first-token in milliseconds for streaming
+          calls; 0 for sync.
+        type: integer
+      turnIndex:
+        type: integer
+      userId:
+        type: string
+      virtualKeyId:
+        type: string
+    type: object
+  hyperstrate_server_internal_modules_observability_domain.InferencePayload:
+    properties:
+      createdAt:
+        type: string
+      logId:
+        type: string
+      requestFields:
+        description: JSON-encoded fields map
+        type: string
+      responseContent:
+        type: string
+      routerId:
+        type: string
+    type: object
+  hyperstrate_server_internal_modules_observability_domain.LatencyStats:
+    properties:
+      avgMs:
+        type: number
+      count:
+        type: integer
+      modelDefKey:
+        type: string
+      p50Ms:
+        type: integer
+      p95Ms:
+        type: integer
+      p99Ms:
+        type: integer
+      provider:
+        type: string
+    type: object
+  hyperstrate_server_internal_modules_observability_domain.LoopDetection:
+    properties:
+      agentSessionId:
+        type: string
+      costUsd:
+        type: number
+      createdAt:
+        type: string
+      logId:
+        type: string
+      reason:
+        type: string
+      turnIndex:
+        type: integer
+    type: object
+  hyperstrate_server_internal_modules_observability_domain.PipelineStepStat:
+    properties:
+      extraAttempts:
+        description: retry/hedging extra API calls
+        type: integer
+      kind:
+        type: string
+      name:
+        type: string
+      outcomes:
+        additionalProperties:
+          format: int64
+          type: integer
+        type: object
+    type: object
+  hyperstrate_server_internal_modules_observability_domain.ProviderHealth:
+    properties:
+      checkedAt:
+        type: string
+      errorMessage:
+        type: string
+      isHealthy:
+        type: boolean
+      latencyMs:
+        type: integer
+      modelDefKey:
+        type: string
+      modelId:
+        type: string
+      provider:
+        type: string
+    type: object
+  hyperstrate_server_internal_modules_observability_domain.RouterCacheBreakdown:
+    properties:
+      estSavedUsd:
+        type: number
+      exactHits:
+        type: integer
+      hitRatePct:
+        type: number
+      misses:
+        type: integer
+      semanticHits:
+        type: integer
+      totalRequests:
+        type: integer
+    type: object
+  hyperstrate_server_internal_modules_observability_domain.RouterPipelineStats:
+    properties:
+      analyzedLogs:
+        description: number of trace-parsed logs
+        type: integer
+      cache:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_observability_domain.RouterCacheBreakdown'
+      features:
+        items:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_observability_domain.PipelineStepStat'
+        type: array
+      interceptors:
+        items:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_observability_domain.PipelineStepStat'
+        type: array
+      totalRequests:
+        type: integer
+    type: object
+  hyperstrate_server_internal_modules_observability_domain.Source:
+    enum:
+    - direct
+    - router
+    - job
+    type: string
+    x-enum-varnames:
+    - SourceDirect
+    - SourceRouter
+    - SourceJob
+  hyperstrate_server_internal_modules_observability_domain.SubagentBreakdown:
+    properties:
+      agent:
+        type: string
+      agentRole:
+        type: string
+      agentSessionId:
+        type: string
+      avgQualityScore:
+        type: number
+      costUsd:
+        type: number
+      parentSessionId:
+        type: string
+      toolCallCount:
+        type: integer
+      totalTokens:
+        type: integer
+      turns:
+        type: integer
+    type: object
+  hyperstrate_server_internal_modules_observability_domain.ToolCallArchive:
+    properties:
+      agentSessionId:
+        type: string
+      archived:
+        type: boolean
+      createdAt:
+        type: string
+      errorMessage:
+        type: string
+      id:
+        type: string
+      logId:
+        type: string
+      orgId:
+        type: string
+      requestPayload:
+        type: string
+      requestPreview:
+        type: string
+      responseChars:
+        type: integer
+      responsePayload:
+        type: string
+      responsePreview:
+        type: string
+      routerId:
+        type: string
+      toolCallId:
+        type: string
+      toolName:
+        type: string
+    type: object
+  hyperstrate_server_internal_modules_observability_domain.VirtualKeyUsage:
+    properties:
+      costUsd:
+        type: number
+      errorCount:
+        type: integer
+      requests:
+        type: integer
+      totalTokens:
+        type: integer
+      virtualKeyId:
+        type: string
+    type: object
+  hyperstrate_server_internal_modules_observability_domain.WebhookDelivery:
+    properties:
+      createdAt:
+        type: string
+      errorMsg:
+        type: string
+      event:
+        type: string
+      id:
+        type: string
+      routerId:
+        type: string
+      statusCode:
+        type: integer
+      success:
+        type: boolean
+      url:
+        type: string
+    type: object
+  hyperstrate_server_internal_modules_prompts_application.CreatePromptInput:
+    properties:
+      content:
+        type: string
+      description:
+        type: string
+      name:
+        maxLength: 255
+        type: string
+    required:
+    - content
+    - name
+    type: object
+  hyperstrate_server_internal_modules_prompts_application.PromptResponse:
+    properties:
+      content:
+        type: string
+      createdAt:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      modifiedAt:
+        type: string
+      name:
+        type: string
+      variables:
+        description: Variables is the list of {{key}} placeholder names found in Content.
+        items:
+          type: string
+        type: array
+    required:
+    - content
+    - createdAt
+    - id
+    - modifiedAt
+    - name
+    type: object
+  hyperstrate_server_internal_modules_prompts_application.PromptVersionResponse:
+    properties:
+      content:
+        type: string
+      createdAt:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      promptId:
+        type: string
+      variables:
+        items:
+          type: string
+        type: array
+      version:
+        type: integer
+    type: object
+  hyperstrate_server_internal_modules_prompts_application.UpdatePromptInput:
+    properties:
+      content:
+        type: string
+      description:
+        type: string
+      name:
+        type: string
+    type: object
+  hyperstrate_server_internal_modules_router_application.AddFeatureInput:
+    properties:
+      config:
+        type: object
+      executionOrder:
+        type: integer
+      featureType:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_router_domain.RouterFeatureType'
+    required:
+    - featureType
+    type: object
+  hyperstrate_server_internal_modules_router_application.AddInterceptorInput:
+    properties:
+      config:
+        additionalProperties: {}
+        type: object
+      executionOrder:
+        description: nil → auto-assign next slot
+        type: integer
+      type:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_router_domain.RouterInterceptorType'
+    required:
+    - type
+    type: object
+  hyperstrate_server_internal_modules_router_application.AddTargetInput:
+    properties:
+      modelId:
+        type: string
+      percentage:
+        maximum: 100
+        minimum: 0
+        type: number
+      priority:
+        type: integer
+      promptId:
+        description: |-
+          PromptID optionally attaches a stored system prompt to this target.
+          Takes precedence over the router-level system prompt during inference.
+        type: string
+      weight:
+        type: integer
+    required:
+    - modelId
+    type: object
+  hyperstrate_server_internal_modules_router_application.BudgetStatus:
+    properties:
+      estimatedCostUsd:
+        type: number
+      periodKey:
+        type: string
+      requests:
+        type: integer
+    required:
+    - estimatedCostUsd
+    - periodKey
+    - requests
+    type: object
+  hyperstrate_server_internal_modules_router_application.CreateEvaluationInput:
+    properties:
+      description:
+        type: string
+      name:
+        maxLength: 255
+        type: string
+      routerId:
+        type: string
+    required:
+    - name
+    - routerId
+    type: object
+  hyperstrate_server_internal_modules_router_application.CreateRouterInput:
+    properties:
+      description:
+        type: string
+      name:
+        maxLength: 255
+        type: string
+      promptId:
+        type: string
+      storePayloads:
+        type: boolean
+      strategy:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_router_domain.RoutingStrategy'
+      webhookUrl:
+        type: string
+    required:
+    - name
+    - strategy
+    type: object
+  hyperstrate_server_internal_modules_router_application.EvalCaseResult:
+    properties:
+      actual:
+        type: string
+      caseId:
+        type: string
+      errorMsg:
+        type: string
+      passed:
+        type: boolean
+      score:
+        description: 0.0–1.0
+        type: number
+    type: object
+  hyperstrate_server_internal_modules_router_application.EvaluationCaseInput:
+    properties:
+      description:
+        type: string
+      expected:
+        type: string
+      fields:
+        additionalProperties:
+          type: string
+        type: object
+      scoreMethod:
+        enum:
+        - exact
+        - contains
+        - llm
+        - agent_task
+        type: string
+    required:
+    - expected
+    - fields
+    type: object
+  hyperstrate_server_internal_modules_router_application.EvaluationCaseResponse:
+    properties:
+      createdAt:
+        type: string
+      description:
+        type: string
+      evalId:
+        type: string
+      expected:
+        type: string
+      fields:
+        additionalProperties:
+          type: string
+        type: object
+      id:
+        type: string
+      scoreMethod:
+        type: string
+    type: object
+  hyperstrate_server_internal_modules_router_application.EvaluationResponse:
+    properties:
+      caseCount:
+        type: integer
+      createdAt:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      modifiedAt:
+        type: string
+      name:
+        type: string
+      routerId:
+        type: string
+    type: object
+  hyperstrate_server_internal_modules_router_application.EvaluationRunResponse:
+    properties:
+      avgScore:
+        type: number
+      createdAt:
+        type: string
+      evalId:
+        type: string
+      id:
+        type: string
+      passedCases:
+        type: integer
+      results:
+        items:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.EvalCaseResult'
+        type: array
+      routerId:
+        type: string
+      totalCases:
+        type: integer
+    type: object
+  hyperstrate_server_internal_modules_router_application.ExportedFeature:
+    properties:
+      config:
+        additionalProperties: {}
+        type: object
+      executionOrder:
+        type: integer
+      featureType:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_router_domain.RouterFeatureType'
+      isEnabled:
+        type: boolean
+    type: object
+  hyperstrate_server_internal_modules_router_application.ExportedInterceptor:
+    properties:
+      config:
+        additionalProperties: {}
+        type: object
+      executionOrder:
+        type: integer
+      isEnabled:
+        type: boolean
+      type:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_router_domain.RouterInterceptorType'
+    type: object
+  hyperstrate_server_internal_modules_router_application.ExportedRouter:
+    properties:
+      configuration:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_router_domain.RouterConfiguration'
+      name:
+        type: string
+      strategy:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_router_domain.RoutingStrategy'
+    type: object
+  hyperstrate_server_internal_modules_router_application.ExportedTarget:
+    properties:
+      isEnabled:
+        type: boolean
+      key:
+        type: string
+      modelDefinitionKey:
+        type: string
+      percentage:
+        type: number
+      priority:
+        type: integer
+      promptId:
+        type: string
+      weight:
+        type: integer
+    type: object
+  hyperstrate_server_internal_modules_router_application.ImportRouterInput:
+    properties:
+      features:
+        items:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.ExportedFeature'
+        type: array
+      interceptors:
+        items:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.ExportedInterceptor'
+        type: array
+      nameOverride:
+        type: string
+      router:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.ExportedRouter'
+      targets:
+        items:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.ExportedTarget'
+        type: array
+      version:
+        type: string
+    type: object
+  hyperstrate_server_internal_modules_router_application.MCPServerTools:
+    properties:
+      serverId:
+        type: string
+      serverName:
+        type: string
+      serverUrl:
+        type: string
+      tools:
+        items:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.MCPToolDefinition'
+        type: array
+    type: object
+  hyperstrate_server_internal_modules_router_application.MCPToolDefinition:
+    properties:
+      description:
+        type: string
+      inputSchema:
+        additionalProperties: {}
+        type: object
+      name:
+        type: string
+    type: object
+  hyperstrate_server_internal_modules_router_application.PipelineStep:
+    properties:
+      attempts:
+        description: retry count (inference step only)
+        type: integer
+      detail:
+        type: string
+      durationMs:
+        description: how long this step took, fractional ms (µs resolution)
+        type: number
+      kind:
+        description: rate_limit|budget|cache|transform|interceptor|target_select|inference|budget_accounting|cache_store
+        type: string
+      name:
+        type: string
+      offsetMs:
+        description: ms elapsed since pipeline start when step started, fractional
+          ms
+        type: number
+      outcome:
+        description: passed|blocked|hit_exact|hit_semantic|miss|applied|skipped|routed|masked|success|error|recorded|stored
+        type: string
+      phase:
+        type: integer
+    type: object
+  hyperstrate_server_internal_modules_router_application.RouteInferInput:
+    properties:
+      bypassCache:
+        type: boolean
+      fields:
+        additionalProperties:
+          type: string
+        type: object
+      options:
+        additionalProperties: {}
+        type: object
+    required:
+    - fields
+    type: object
+  hyperstrate_server_internal_modules_router_application.RouteInferResult:
+    properties:
+      abVariant:
+        type: string
+      cachedInputTokens:
+        type: integer
+      content:
+        type: string
+      costUsd:
+        type: number
+      inputTokens:
+        type: integer
+      modelDefKey:
+        type: string
+      outputTokens:
+        type: integer
+      pipelineSteps:
+        items:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.PipelineStep'
+        type: array
+      provider:
+        type: string
+      selectedModelId:
+        type: string
+      selectedTargetId:
+        type: string
+      toolCalls:
+        description: |-
+          ToolCalls is non-nil when the model responded with tool/function calls
+          instead of text content.
+        items:
+          type: integer
+        type: array
+    required:
+    - content
+    - selectedModelId
+    type: object
+  hyperstrate_server_internal_modules_router_application.RouterExport:
+    properties:
+      features:
+        items:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.ExportedFeature'
+        type: array
+      interceptors:
+        items:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.ExportedInterceptor'
+        type: array
+      router:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.ExportedRouter'
+      targets:
+        items:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.ExportedTarget'
+        type: array
+      version:
+        type: string
+    type: object
+  hyperstrate_server_internal_modules_router_application.RouterFeatureResponse:
+    properties:
+      config:
+        additionalProperties: {}
+        type: object
+      createdAt:
+        type: string
+      executionOrder:
+        type: integer
+      featureType:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_router_domain.RouterFeatureType'
+      id:
+        type: string
+      isEnabled:
+        type: boolean
+      modifiedAt:
+        type: string
+      routerId:
+        type: string
+    required:
+    - config
+    - createdAt
+    - executionOrder
+    - featureType
+    - id
+    - isEnabled
+    - modifiedAt
+    - routerId
+    type: object
+  hyperstrate_server_internal_modules_router_application.RouterInterceptorResponse:
+    properties:
+      config:
+        additionalProperties: {}
+        type: object
+      createdAt:
+        type: string
+      executionOrder:
+        type: integer
+      id:
+        type: string
+      isEnabled:
+        type: boolean
+      modifiedAt:
+        type: string
+      routerId:
+        type: string
+      type:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_router_domain.RouterInterceptorType'
+    required:
+    - config
+    - createdAt
+    - executionOrder
+    - id
+    - isEnabled
+    - modifiedAt
+    - routerId
+    - type
+    type: object
+  hyperstrate_server_internal_modules_router_application.RouterLintIssue:
+    properties:
+      code:
+        type: string
+      feature:
+        type: string
+      message:
+        type: string
+      severity:
+        description: error|warning|info
+        type: string
+    type: object
+  hyperstrate_server_internal_modules_router_application.RouterLintResponse:
+    properties:
+      issues:
+        items:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.RouterLintIssue'
+        type: array
+      ok:
+        type: boolean
+      routerId:
+        type: string
+    type: object
+  hyperstrate_server_internal_modules_router_application.RouterMetricSnapshot:
+    properties:
+      avgLatencyMs:
+        type: number
+      counts:
+        additionalProperties:
+          format: int64
+          type: integer
+        type: object
+      routerId:
+        type: string
+      totalRequests:
+        type: integer
+    required:
+    - avgLatencyMs
+    - counts
+    - routerId
+    - totalRequests
+    type: object
+  hyperstrate_server_internal_modules_router_application.RouterResponse:
+    properties:
+      createdAt:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      modifiedAt:
+        type: string
+      name:
+        type: string
+      promptId:
+        type: string
+      status:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_router_domain.RouterStatus'
+      storePayloads:
+        type: boolean
+      strategy:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_router_domain.RoutingStrategy'
+      webhookUrl:
+        type: string
+    required:
+    - createdAt
+    - description
+    - id
+    - modifiedAt
+    - name
+    - status
+    - strategy
+    type: object
+  hyperstrate_server_internal_modules_router_application.UpdateEvaluationInput:
+    properties:
+      description:
+        type: string
+      name:
+        maxLength: 255
+        type: string
+    type: object
+  hyperstrate_server_internal_modules_router_application.UpdateFeatureInput:
+    properties:
+      config:
+        type: object
+      executionOrder:
+        type: integer
+      isEnabled:
+        type: boolean
+    type: object
+  hyperstrate_server_internal_modules_router_application.UpdateInterceptorInput:
+    properties:
+      config:
+        additionalProperties: {}
+        type: object
+      executionOrder:
+        type: integer
+      isEnabled:
+        type: boolean
+    type: object
+  hyperstrate_server_internal_modules_router_application.UpdateRouterInput:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+      promptId:
+        type: string
+      status:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_router_domain.RouterStatus'
+      storePayloads:
+        type: boolean
+      strategy:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_router_domain.RoutingStrategy'
+      webhookUrl:
+        type: string
+    type: object
+  hyperstrate_server_internal_modules_router_application.UpdateTargetInput:
+    properties:
+      isEnabled:
+        type: boolean
+      percentage:
+        type: number
+      priority:
+        type: integer
+      promptId:
+        type: string
+      weight:
+        type: integer
+    type: object
+  hyperstrate_server_internal_modules_router_domain.RouterConfiguration:
+    properties:
+      modifiedAt:
+        type: string
+      promptId:
+        description: |-
+          PromptID optionally references a stored prompt (prompts module).
+          When set, the prompt content is injected as fields["systemPrompt"] before
+          each inference call, with {{variable}} placeholders interpolated from fields.
+        type: string
+      routerId:
+        type: string
+      storePayloads:
+        description: |-
+          StorePayloads enables full prompt+response persistence for this router.
+          When true, the raw request fields and response content are saved to inference_payloads.
+        type: boolean
+      webhookUrl:
+        description: |-
+          WebhookURL is an optional HTTP endpoint that receives POST notifications
+          when significant events occur on this router (budget exceeded, all targets
+          failed, rate limit exceeded, budget alert threshold crossed).
+        type: string
+    type: object
+  hyperstrate_server_internal_modules_router_domain.RouterFeatureType:
+    enum:
+    - token_optimization
+    - response_cache
+    - semantic_cache
+    - retry
+    - fallback
+    - context_trimming
+    - token_cost_optimization
+    - prompt_optimizer
+    - prompt_policy_rollout
+    - rate_limit
+    - budget
+    - mcp_tools
+    - health_check
+    - prompt_caching
+    - structured_output
+    - request_coalescing
+    - hedging
+    - quality_gate
+    - context_compression
+    - semantic_memory
+    - cost_aware_routing
+    - response_prefetch
+    - response_fingerprinting
+    type: string
+    x-enum-varnames:
+    - FeatureTokenOptimization
+    - FeatureResponseCache
+    - FeatureSemanticCache
+    - FeatureRetry
+    - FeatureFallback
+    - FeatureContextTrimming
+    - FeatureTokenCostOptimization
+    - FeaturePromptOptimizer
+    - FeaturePromptPolicyRollout
+    - FeatureRateLimit
+    - FeatureBudget
+    - FeatureMCPTools
+    - FeatureHealthCheck
+    - FeaturePromptCaching
+    - FeatureStructuredOutput
+    - FeatureRequestCoalescing
+    - FeatureHedging
+    - FeatureQualityGate
+    - FeatureContextCompression
+    - FeatureSemanticMemory
+    - FeatureCostAwareRouting
+    - FeatureResponsePrefetch
+    - FeatureResponseFingerprinting
+  hyperstrate_server_internal_modules_router_domain.RouterInterceptorType:
+    enum:
+    - semantic_classifier
+    - content_filter
+    - pii_detector
+    - prompt_guard
+    - ab_test
+    - prompt_shield
+    - team_budget
+    type: string
+    x-enum-varnames:
+    - InterceptorSemanticClassifier
+    - InterceptorContentFilter
+    - InterceptorPIIDetector
+    - InterceptorPromptGuard
+    - InterceptorABTest
+    - InterceptorPromptShield
+    - InterceptorTeamBudget
+  hyperstrate_server_internal_modules_router_domain.RouterStatus:
+    enum:
+    - active
+    - inactive
+    - draft
+    type: string
+    x-enum-varnames:
+    - RouterStatusActive
+    - RouterStatusInactive
+    - RouterStatusDraft
+  hyperstrate_server_internal_modules_router_domain.RouterTeamAccess:
+    properties:
+      id:
+        type: string
+      orgId:
+        type: string
+      routerId:
+        type: string
+      teamId:
+        type: string
+    type: object
+  hyperstrate_server_internal_modules_router_domain.RoutingStrategy:
+    enum:
+    - round_robin
+    - weighted
+    - percentage
+    - failover
+    - random
+    - latency_based
+    type: string
+    x-enum-varnames:
+    - RoutingStrategyRoundRobin
+    - RoutingStrategyWeighted
+    - RoutingStrategyPercentage
+    - RoutingStrategyFailover
+    - RoutingStrategyRandom
+    - RoutingStrategyLatencyBased
+  hyperstrate_server_internal_shared_dbtype.JSONMap:
+    additionalProperties: {}
+    type: object
+  hyperstrate_server_internal_shared_dbtype.JSONStringMap:
+    additionalProperties:
+      type: string
+    type: object
+  hyperstrate_server_internal_shared_pagination.Paginated-hyperstrate_server_internal_modules_ai_application_ModelResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_ai_application.ModelResponse'
+        type: array
+      meta:
+        $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.PaginatedMeta'
+    required:
+    - items
+    - meta
+    type: object
+  hyperstrate_server_internal_shared_pagination.Paginated-hyperstrate_server_internal_modules_ai_domain_Job:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_ai_domain.Job'
+        type: array
+      meta:
+        $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.PaginatedMeta'
+    required:
+    - items
+    - meta
+    type: object
+  ? hyperstrate_server_internal_shared_pagination.Paginated-hyperstrate_server_internal_modules_auth_application_OrganizationResponse
+  : properties:
+      items:
+        items:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_auth_application.OrganizationResponse'
+        type: array
+      meta:
+        $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.PaginatedMeta'
+    required:
+    - items
+    - meta
+    type: object
+  hyperstrate_server_internal_shared_pagination.Paginated-hyperstrate_server_internal_modules_auth_application_TeamResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_auth_application.TeamResponse'
+        type: array
+      meta:
+        $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.PaginatedMeta'
+    required:
+    - items
+    - meta
+    type: object
+  hyperstrate_server_internal_shared_pagination.Paginated-hyperstrate_server_internal_modules_auth_application_UserResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_auth_application.UserResponse'
+        type: array
+      meta:
+        $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.PaginatedMeta'
+    required:
+    - items
+    - meta
+    type: object
+  ? hyperstrate_server_internal_shared_pagination.Paginated-hyperstrate_server_internal_modules_observability_domain_AgentSessionEvent
+  : properties:
+      items:
+        items:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_observability_domain.AgentSessionEvent'
+        type: array
+      meta:
+        $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.PaginatedMeta'
+    required:
+    - items
+    - meta
+    type: object
+  ? hyperstrate_server_internal_shared_pagination.Paginated-hyperstrate_server_internal_modules_observability_domain_AgentSessionSummary
+  : properties:
+      items:
+        items:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_observability_domain.AgentSessionSummary'
+        type: array
+      meta:
+        $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.PaginatedMeta'
+    required:
+    - items
+    - meta
+    type: object
+  ? hyperstrate_server_internal_shared_pagination.Paginated-hyperstrate_server_internal_modules_observability_domain_CompressionEvent
+  : properties:
+      items:
+        items:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_observability_domain.CompressionEvent'
+        type: array
+      meta:
+        $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.PaginatedMeta'
+    required:
+    - items
+    - meta
+    type: object
+  hyperstrate_server_internal_shared_pagination.Paginated-hyperstrate_server_internal_modules_observability_domain_ToolCallArchive:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_observability_domain.ToolCallArchive'
+        type: array
+      meta:
+        $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.PaginatedMeta'
+    required:
+    - items
+    - meta
+    type: object
+  hyperstrate_server_internal_shared_pagination.Paginated-hyperstrate_server_internal_modules_prompts_application_PromptResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_prompts_application.PromptResponse'
+        type: array
+      meta:
+        $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.PaginatedMeta'
+    required:
+    - items
+    - meta
+    type: object
+  ? hyperstrate_server_internal_shared_pagination.Paginated-hyperstrate_server_internal_modules_prompts_application_PromptVersionResponse
+  : properties:
+      items:
+        items:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_prompts_application.PromptVersionResponse'
+        type: array
+      meta:
+        $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.PaginatedMeta'
+    required:
+    - items
+    - meta
+    type: object
+  ? hyperstrate_server_internal_shared_pagination.Paginated-hyperstrate_server_internal_modules_router_application_EvaluationResponse
+  : properties:
+      items:
+        items:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.EvaluationResponse'
+        type: array
+      meta:
+        $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.PaginatedMeta'
+    required:
+    - items
+    - meta
+    type: object
+  ? hyperstrate_server_internal_shared_pagination.Paginated-hyperstrate_server_internal_modules_router_application_EvaluationRunResponse
+  : properties:
+      items:
+        items:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.EvaluationRunResponse'
+        type: array
+      meta:
+        $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.PaginatedMeta'
+    required:
+    - items
+    - meta
+    type: object
+  hyperstrate_server_internal_shared_pagination.Paginated-hyperstrate_server_internal_modules_router_application_RouterResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.RouterResponse'
+        type: array
+      meta:
+        $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.PaginatedMeta'
+    required:
+    - items
+    - meta
+    type: object
+  hyperstrate_server_internal_shared_pagination.Paginated-internal_modules_ai_interfaces_http_ConversationResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/internal_modules_ai_interfaces_http.ConversationResponse'
+        type: array
+      meta:
+        $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.PaginatedMeta'
+    required:
+    - items
+    - meta
+    type: object
+  hyperstrate_server_internal_shared_pagination.Paginated-internal_modules_auth_interfaces_http_APIKeyResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/internal_modules_auth_interfaces_http.APIKeyResponse'
+        type: array
+      meta:
+        $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.PaginatedMeta'
+    required:
+    - items
+    - meta
+    type: object
+  hyperstrate_server_internal_shared_pagination.Paginated-internal_modules_auth_interfaces_http_VirtualKeyResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/internal_modules_auth_interfaces_http.VirtualKeyResponse'
+        type: array
+      meta:
+        $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.PaginatedMeta'
+    required:
+    - items
+    - meta
+    type: object
+  hyperstrate_server_internal_shared_pagination.Paginated-internal_modules_observability_interfaces_http_InferenceLogResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/internal_modules_observability_interfaces_http.InferenceLogResponse'
+        type: array
+      meta:
+        $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.PaginatedMeta'
+    required:
+    - items
+    - meta
+    type: object
+  hyperstrate_server_internal_shared_pagination.PaginatedMeta:
+    properties:
+      count:
+        type: integer
+      page:
+        type: integer
+      pages:
+        type: integer
+      perPage:
+        type: integer
+      total:
+        type: integer
+    required:
+    - count
+    - page
+    - pages
+    - perPage
+    - total
+    type: object
+  internal_modules_ai_interfaces_http.ConversationResponse:
+    properties:
+      createdAt:
+        type: string
+      id:
+        type: string
+      model:
+        $ref: '#/definitions/internal_modules_ai_interfaces_http.ModelRef'
+      modelId:
+        type: string
+      modifiedAt:
+        type: string
+      title:
+        type: string
+    required:
+    - createdAt
+    - id
+    - modelId
+    - modifiedAt
+    type: object
+  internal_modules_ai_interfaces_http.DiscoveredModel:
+    properties:
+      name:
+        type: string
+      parameterSize:
+        type: string
+      quantizationLevel:
+        type: string
+      sizeBytes:
+        type: integer
+      suggestedCatalogKey:
+        description: SuggestedCatalogKey is the closest match in the Hyperstrate catalog,
+          if any.
+        type: string
+    type: object
+  internal_modules_ai_interfaces_http.ErrorResponse:
+    properties:
+      error:
+        type: string
+      fields:
+        additionalProperties:
+          items:
+            type: string
+          type: array
+        type: object
+    type: object
+  internal_modules_ai_interfaces_http.ModelRef:
+    properties:
+      alias:
+        type: string
+      displayName:
+        type: string
+      id:
+        type: string
+      modelDefKey:
+        type: string
+      provider:
+        type: string
+    type: object
+  internal_modules_auth_interfaces_http.APIKeyCreatedResponse:
+    properties:
+      createdAt:
+        type: string
+      description:
+        type: string
+      expiresAt:
+        type: string
+      id:
+        type: string
+      isEnabled:
+        type: boolean
+      key:
+        type: string
+      lastUsedAt:
+        type: string
+      name:
+        type: string
+      orgId:
+        type: string
+      router:
+        $ref: '#/definitions/internal_modules_auth_interfaces_http.RouterRef'
+      routerId:
+        type: string
+      scope:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_auth_domain.APIKeyScope'
+      team:
+        $ref: '#/definitions/internal_modules_auth_interfaces_http.TeamRef'
+      teamId:
+        type: string
+      virtualKey:
+        $ref: '#/definitions/internal_modules_auth_interfaces_http.VirtualKeyRef'
+      virtualKeyId:
+        type: string
+    required:
+    - createdAt
+    - description
+    - id
+    - isEnabled
+    - name
+    - orgId
+    - routerId
+    - scope
+    - teamId
+    - virtualKeyId
+    type: object
+  internal_modules_auth_interfaces_http.APIKeyResponse:
+    properties:
+      createdAt:
+        type: string
+      description:
+        type: string
+      expiresAt:
+        type: string
+      id:
+        type: string
+      isEnabled:
+        type: boolean
+      lastUsedAt:
+        type: string
+      name:
+        type: string
+      orgId:
+        type: string
+      router:
+        $ref: '#/definitions/internal_modules_auth_interfaces_http.RouterRef'
+      routerId:
+        type: string
+      scope:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_auth_domain.APIKeyScope'
+      team:
+        $ref: '#/definitions/internal_modules_auth_interfaces_http.TeamRef'
+      teamId:
+        type: string
+      virtualKey:
+        $ref: '#/definitions/internal_modules_auth_interfaces_http.VirtualKeyRef'
+      virtualKeyId:
+        type: string
+    required:
+    - createdAt
+    - description
+    - id
+    - isEnabled
+    - name
+    - orgId
+    - routerId
+    - scope
+    - teamId
+    - virtualKeyId
+    type: object
+  internal_modules_auth_interfaces_http.ErrorResponse:
+    properties:
+      error:
+        type: string
+      fields:
+        additionalProperties:
+          items:
+            type: string
+          type: array
+        type: object
+    type: object
+  internal_modules_auth_interfaces_http.RouterRef:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  internal_modules_auth_interfaces_http.TeamRef:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  internal_modules_auth_interfaces_http.VirtualKeyCreatedResponse:
+    properties:
+      createdAt:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      isEnabled:
+        type: boolean
+      key:
+        type: string
+      maxCostUsd:
+        type: number
+      maxRequests:
+        type: integer
+      modifiedAt:
+        type: string
+      name:
+        type: string
+      orgId:
+        type: string
+      rateLimitRps:
+        type: number
+      resetPeriod:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_auth_domain.ResetPeriod'
+      router:
+        $ref: '#/definitions/internal_modules_auth_interfaces_http.RouterRef'
+      routerId:
+        type: string
+      team:
+        $ref: '#/definitions/internal_modules_auth_interfaces_http.TeamRef'
+      teamId:
+        type: string
+    required:
+    - createdAt
+    - description
+    - id
+    - isEnabled
+    - maxCostUsd
+    - maxRequests
+    - modifiedAt
+    - name
+    - orgId
+    - resetPeriod
+    - routerId
+    - teamId
+    type: object
+  internal_modules_auth_interfaces_http.VirtualKeyRef:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  internal_modules_auth_interfaces_http.VirtualKeyResponse:
+    properties:
+      createdAt:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      isEnabled:
+        type: boolean
+      maxCostUsd:
+        type: number
+      maxRequests:
+        type: integer
+      modifiedAt:
+        type: string
+      name:
+        type: string
+      orgId:
+        type: string
+      rateLimitRps:
+        type: number
+      resetPeriod:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_auth_domain.ResetPeriod'
+      router:
+        $ref: '#/definitions/internal_modules_auth_interfaces_http.RouterRef'
+      routerId:
+        type: string
+      team:
+        $ref: '#/definitions/internal_modules_auth_interfaces_http.TeamRef'
+      teamId:
+        type: string
+    required:
+    - createdAt
+    - description
+    - id
+    - isEnabled
+    - maxCostUsd
+    - maxRequests
+    - modifiedAt
+    - name
+    - orgId
+    - resetPeriod
+    - routerId
+    - teamId
+    type: object
+  internal_modules_observability_interfaces_http.InferenceLogResponse:
+    properties:
+      abVariant:
+        type: string
+      agent:
+        type: string
+      agentRole:
+        type: string
+      agentSessionId:
+        type: string
+      cacheHit:
+        description: CacheHit is true when the response was served from cache (exact
+          or semantic).
+        type: boolean
+      cacheHitType:
+        description: CacheHitType is "exact", "semantic", or "" for a cache miss.
+        type: string
+      cachedInputTokens:
+        type: integer
+      contextFillPct:
+        type: number
+      costUsd:
+        type: number
+      createdAt:
+        type: string
+      errorMessage:
+        type: string
+      feedback:
+        description: 'Feedback is the user''s quality signal: 1=positive, -1=negative,
+          0=none.'
+        type: integer
+      id:
+        type: string
+      inputTokens:
+        type: integer
+      latencyMs:
+        type: integer
+      loopDetected:
+        type: boolean
+      loopReason:
+        type: string
+      model:
+        $ref: '#/definitions/internal_modules_observability_interfaces_http.ModelRef'
+      modelDefKey:
+        type: string
+      modelId:
+        type: string
+      orgId:
+        type: string
+      outputTokens:
+        type: integer
+      parentSessionId:
+        type: string
+      pipelineSteps:
+        items:
+          type: integer
+        type: array
+      pipelineTrace:
+        type: string
+      provider:
+        type: string
+      qualityScore:
+        type: integer
+      router:
+        $ref: '#/definitions/internal_modules_observability_interfaces_http.RouterRef'
+      routerId:
+        type: string
+      selectedTargetId:
+        type: string
+      source:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_observability_domain.Source'
+      status:
+        type: string
+      teamId:
+        type: string
+      toolCallCount:
+        type: integer
+      toolResultChars:
+        type: integer
+      totalTokens:
+        type: integer
+      ttftMs:
+        description: TTFTMs is the time-to-first-token in milliseconds for streaming
+          calls; 0 for sync.
+        type: integer
+      turnIndex:
+        type: integer
+      userId:
+        type: string
+      virtualKeyId:
+        type: string
+    type: object
+  internal_modules_observability_interfaces_http.ModelRef:
+    properties:
+      alias:
+        type: string
+      displayName:
+        type: string
+      id:
+        type: string
+      modelDefKey:
+        type: string
+      provider:
+        type: string
+    type: object
+  internal_modules_observability_interfaces_http.ModelUsageResponse:
+    properties:
+      costUsd:
+        type: number
+      errorCount:
+        type: integer
+      model:
+        $ref: '#/definitions/internal_modules_observability_interfaces_http.ModelRef'
+      modelDefKey:
+        type: string
+      modelId:
+        type: string
+      provider:
+        type: string
+      requests:
+        type: integer
+      totalTokens:
+        type: integer
+    type: object
+  internal_modules_observability_interfaces_http.ReplayResult:
+    properties:
+      content:
+        type: string
+      costUsd:
+        type: number
+      inputTokens:
+        type: integer
+      latencyMs:
+        type: integer
+      outputTokens:
+        type: integer
+    type: object
+  internal_modules_observability_interfaces_http.RouterRef:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  internal_modules_observability_interfaces_http.RouterUsageResponse:
+    properties:
+      costUsd:
+        type: number
+      errors:
+        type: integer
+      requests:
+        type: integer
+      router:
+        $ref: '#/definitions/internal_modules_observability_interfaces_http.RouterRef'
+      routerId:
+        type: string
+    type: object
+  internal_modules_prompts_interfaces_http.ErrorResponse:
+    properties:
+      error:
+        type: string
+      fields:
+        additionalProperties:
+          items:
+            type: string
+          type: array
+        type: object
+    type: object
+  internal_modules_router_interfaces_http.BenchmarkResult:
+    properties:
+      avgLatencyMs:
+        type: number
+      concurrency:
+        type: integer
+      durationMs:
+        type: integer
+      errorCount:
+        type: integer
+      p50LatencyMs:
+        type: integer
+      p95LatencyMs:
+        type: integer
+      p99LatencyMs:
+        type: integer
+      requestsPerSec:
+        type: number
+      successCount:
+        type: integer
+      totalCostUsd:
+        type: number
+      totalRequests:
+        type: integer
+    type: object
+  internal_modules_router_interfaces_http.ErrorResponse:
+    properties:
+      error:
+        type: string
+      fields:
+        additionalProperties:
+          items:
+            type: string
+          type: array
+        type: object
+    type: object
+  internal_modules_router_interfaces_http.ModelRef:
+    properties:
+      alias:
+        type: string
+      displayName:
+        type: string
+      id:
+        type: string
+      inputPricePer1MTokens:
+        type: number
+      modelDefKey:
+        type: string
+      outputPricePer1MTokens:
+        type: number
+      provider:
+        type: string
+    type: object
+  internal_modules_router_interfaces_http.RouterTargetResponse:
+    properties:
+      createdAt:
+        type: string
+      id:
+        type: string
+      isEnabled:
+        type: boolean
+      model:
+        $ref: '#/definitions/internal_modules_router_interfaces_http.ModelRef'
+      modelId:
+        type: string
+      modifiedAt:
+        type: string
+      percentage:
+        type: number
+      priority:
+        type: integer
+      promptId:
+        type: string
+      routerId:
+        type: string
+      weight:
+        type: integer
+    required:
+    - createdAt
+    - id
+    - isEnabled
+    - modelId
+    - modifiedAt
+    - percentage
+    - priority
+    - routerId
+    - weight
+    type: object
+info:
+  contact: {}
+  description: AI model proxy with async job support. Powered by Gin, Fx, GORM, and
+    AWS Lambda.
+  title: AI Proxy API
+  version: "1.0"
+paths:
+  /ai/catalog:
+    get:
+      description: Returns all static model definitions available for registration
+      parameters:
+      - description: Search by key, display name, model id, provider, description,
+          or capability
+        in: query
+        name: query
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/hyperstrate_server_internal_modules_ai_domain.ModelDefinition'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List catalog model definitions
+      tags:
+      - hyperstrate
+      - catalog
+  /ai/conversations:
+    get:
+      description: Returns paginated conversations ordered by creation time
+      parameters:
+      - description: Page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Items per page (default 30, max 500)
+        in: query
+        name: perPage
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.Paginated-internal_modules_ai_interfaces_http_ConversationResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_modules_ai_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List conversations
+      tags:
+      - hyperstrate
+      - conversations
+    post:
+      consumes:
+      - application/json
+      description: Creates a new conversation tied to a registered model
+      parameters:
+      - description: Conversation input
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_ai_application.CreateConversationInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_modules_ai_interfaces_http.ConversationResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_ai_interfaces_http.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_ai_interfaces_http.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_modules_ai_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a conversation
+      tags:
+      - hyperstrate
+      - conversations
+  /ai/conversations/{id}:
+    delete:
+      description: Deletes a conversation and all its messages
+      parameters:
+      - description: Conversation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_ai_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a conversation
+      tags:
+      - hyperstrate
+      - conversations
+    get:
+      description: Returns a single conversation by ID
+      parameters:
+      - description: Conversation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_modules_ai_interfaces_http.ConversationResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_ai_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a conversation
+      tags:
+      - hyperstrate
+      - conversations
+  /ai/conversations/{id}/messages:
+    get:
+      description: Returns all messages in a conversation ordered by creation time
+      parameters:
+      - description: Conversation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/hyperstrate_server_internal_modules_ai_domain.ConversationMessage'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_ai_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List conversation messages
+      tags:
+      - hyperstrate
+      - conversations
+    post:
+      consumes:
+      - application/json
+      description: Appends a user or assistant message to an existing conversation
+      parameters:
+      - description: Conversation ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Message input
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_ai_application.AddConversationMessageInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_ai_domain.ConversationMessage'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_ai_interfaces_http.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_ai_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Add a message to a conversation
+      tags:
+      - hyperstrate
+      - conversations
+  /ai/discover:
+    get:
+      description: Polls the given Ollama base URL for available models and suggests
+        catalog matches
+      parameters:
+      - description: Ollama base URL (defaults to configured OLLAMA_BASE_URL)
+        in: query
+        name: baseUrl
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/definitions/internal_modules_ai_interfaces_http.DiscoveredModel'
+                type: array
+            type: object
+        "502":
+          description: Bad Gateway
+          schema:
+            $ref: '#/definitions/internal_modules_ai_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Discover models on a local Ollama instance
+      tags:
+      - hyperstrate
+      - models
+  /ai/infer:
+    post:
+      consumes:
+      - application/json
+      description: Forwards a request to the upstream model and returns the response
+        immediately
+      parameters:
+      - description: Inference request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_ai_application.InferRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_ai_application.InferenceResult'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_ai_interfaces_http.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_ai_interfaces_http.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/internal_modules_ai_interfaces_http.ErrorResponse'
+        "502":
+          description: Bad Gateway
+          schema:
+            $ref: '#/definitions/internal_modules_ai_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Synchronous inference
+      tags:
+      - hyperstrate
+      - inference
+  /ai/infer/stream:
+    post:
+      consumes:
+      - application/json
+      description: Forwards a request to the upstream model and streams response tokens
+        as SSE.
+      parameters:
+      - description: Inference request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_ai_application.InferRequest'
+      produces:
+      - text/event-stream
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_ai_interfaces_http.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_ai_interfaces_http.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/internal_modules_ai_interfaces_http.ErrorResponse'
+        "502":
+          description: Bad Gateway
+          schema:
+            $ref: '#/definitions/internal_modules_ai_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Streaming inference
+      tags:
+      - hyperstrate
+      - inference
+  /ai/jobs:
+    get:
+      description: Returns paginated inference jobs ordered by creation time (newest
+        first)
+      parameters:
+      - description: Page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Items per page (default 30, max 500)
+        in: query
+        name: perPage
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.Paginated-hyperstrate_server_internal_modules_ai_domain_Job'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_modules_ai_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List jobs
+      tags:
+      - hyperstrate
+      - jobs
+    post:
+      consumes:
+      - application/json
+      description: Creates a background job and returns its ID immediately.
+      parameters:
+      - description: Job payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_ai_application.SubmitJobRequest'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_ai_domain.Job'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_ai_interfaces_http.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_ai_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Submit an async inference job
+      tags:
+      - hyperstrate
+      - jobs
+  /ai/jobs/{id}:
+    get:
+      description: Returns a job by ID, including its status and result when complete
+      parameters:
+      - description: Job ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_ai_domain.Job'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_ai_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a job
+      tags:
+      - hyperstrate
+      - jobs
+  /ai/jobs/{id}/process:
+    post:
+      description: Runs a PENDING job synchronously. Intended for serverless triggers
+      parameters:
+      - description: Job ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_ai_interfaces_http.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_modules_ai_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Process a pending job
+      tags:
+      - hyperstrate
+      - jobs
+  /ai/mcp/servers:
+    get:
+      description: Returns all MCP server configurations for the organisation
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/hyperstrate_server_internal_modules_ai_application.MCPServerResponse'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List MCP servers
+      tags:
+      - hyperstrate
+      - models
+    post:
+      consumes:
+      - application/json
+      description: Registers a new MCP server with optional auth credentials
+      parameters:
+      - description: MCP server config
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_ai_application.CreateMCPServerInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_ai_application.MCPServerResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_ai_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create an MCP server
+      tags:
+      - hyperstrate
+      - models
+  /ai/mcp/servers/{serverId}:
+    delete:
+      parameters:
+      - description: MCP Server ID
+        in: path
+        name: serverId
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_ai_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete an MCP server
+      tags:
+      - hyperstrate
+      - models
+    get:
+      parameters:
+      - description: MCP Server ID
+        in: path
+        name: serverId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_ai_application.MCPServerResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_ai_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get an MCP server
+      tags:
+      - hyperstrate
+      - models
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: MCP Server ID
+        in: path
+        name: serverId
+        required: true
+        type: string
+      - description: Fields to update
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_ai_application.UpdateMCPServerInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_ai_application.MCPServerResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_ai_interfaces_http.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_ai_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update an MCP server
+      tags:
+      - hyperstrate
+      - models
+  /ai/models:
+    get:
+      description: Returns paginated registered AI model instances. When `ids` is
+        provided, fetches only those specific models and ignores pagination/capabilities.
+      parameters:
+      - collectionFormat: multi
+        description: Fetch specific models by ID (bypasses pagination)
+        in: query
+        items:
+          type: string
+        name: ids
+        type: array
+      - description: Page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Items per page (default 30, max 500)
+        in: query
+        name: perPage
+        type: integer
+      - collectionFormat: multi
+        description: Capability filter (multi-value)
+        in: query
+        items:
+          type: string
+        name: capabilities
+        type: array
+      - description: Search by model ID, alias, or model definition key
+        in: query
+        name: query
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.Paginated-hyperstrate_server_internal_modules_ai_application_ModelResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_modules_ai_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List registered models
+      tags:
+      - hyperstrate
+      - models
+    post:
+      consumes:
+      - application/json
+      description: Registers a new AI model instance from a catalog model definition
+      parameters:
+      - description: Registration input
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_ai_application.RegisterModelInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_ai_application.ModelResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_ai_interfaces_http.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_ai_interfaces_http.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_modules_ai_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Register a model
+      tags:
+      - hyperstrate
+      - models
+  /ai/models/{id}:
+    delete:
+      description: Deletes a model registration and its associated config
+      parameters:
+      - description: Model ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_ai_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a model
+      tags:
+      - hyperstrate
+      - models
+    get:
+      description: Returns a single model registration by ID
+      parameters:
+      - description: Model ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_ai_application.ModelResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_ai_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a registered model
+      tags:
+      - hyperstrate
+      - models
+    patch:
+      consumes:
+      - application/json
+      description: Updates the alias of a model registration
+      parameters:
+      - description: Model ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Fields to update
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_ai_application.UpdateModelInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_ai_application.ModelResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_ai_interfaces_http.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_ai_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a model
+      tags:
+      - hyperstrate
+      - models
+  /ai/models/{id}/configuration:
+    get:
+      description: Returns model configuration (credentials are never exposed)
+      parameters:
+      - description: Model ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_ai_application.ModelConfigurationResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_ai_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get model configuration
+      tags:
+      - hyperstrate
+      - models
+    put:
+      consumes:
+      - application/json
+      description: Sets (or replaces) the endpoint URL, credentials, and options for
+        a model
+      parameters:
+      - description: Model ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Configuration
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_ai_application.SetModelConfigurationInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_ai_application.ModelConfigurationResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_ai_interfaces_http.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_ai_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Configure a model
+      tags:
+      - hyperstrate
+      - models
+  /ai/models/{id}/key-rotations:
+    get:
+      description: Returns a chronological log of provider API key rotations for a
+        model
+      parameters:
+      - description: Model ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Max entries (default 50)
+        in: query
+        name: limit
+        type: integer
+      - description: Skip entries (default 0)
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/definitions/hyperstrate_server_internal_modules_ai_domain.ModelKeyRotation'
+                type: array
+              total:
+                type: integer
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List API key rotation history
+      tags:
+      - hyperstrate
+      - models
+  /ai/models/{id}/rotate-key:
+    post:
+      consumes:
+      - application/json
+      description: Replaces the API key stored for a model configuration and records
+        the rotation event
+      parameters:
+      - description: Model ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Rotation input
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            gracePeriodHours:
+              type: integer
+            newKey:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_ai_domain.ModelKeyRotation'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_ai_interfaces_http.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_ai_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Rotate provider API key
+      tags:
+      - hyperstrate
+      - models
+  /ai/models/configurations:
+    get:
+      description: Returns full configuration DTOs for the given model IDs (only models
+        that have a configuration are included)
+      parameters:
+      - collectionFormat: multi
+        description: Model IDs
+        in: query
+        items:
+          type: string
+        name: ids
+        required: true
+        type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/hyperstrate_server_internal_modules_ai_application.ModelConfigurationResponse'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List model configurations
+      tags:
+      - hyperstrate
+      - models
+  /analytics/ab-test:
+    get:
+      description: Returns per-variant metrics for routers using the ab_test interceptor
+      parameters:
+      - description: Router ID to fetch A/B results for
+        in: query
+        name: routerId
+        required: true
+        type: string
+      - description: Start date YYYY-MM-DD
+        in: query
+        name: from
+        type: string
+      - description: End date YYYY-MM-DD
+        in: query
+        name: to
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/definitions/hyperstrate_server_internal_modules_observability_domain.ABVariantStats'
+                type: array
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: A/B test variant results
+      tags:
+      - hyperstrate
+      - observability
+  /analytics/agent-sessions:
+    get:
+      parameters:
+      - description: Filter by agent (e.g. claude_code, cursor)
+        in: query
+        name: agent
+        type: string
+      - description: Filter by router ID
+        in: query
+        name: routerId
+        type: string
+      - description: Filter by virtual key ID
+        in: query
+        name: virtualKeyId
+        type: string
+      - description: Filter by user ID
+        in: query
+        name: userId
+        type: string
+      - description: Start date YYYY-MM-DD
+        in: query
+        name: from
+        type: string
+      - description: End date YYYY-MM-DD
+        in: query
+        name: to
+        type: string
+      - description: Page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Items per page (default 30, max 500)
+        in: query
+        name: perPage
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.Paginated-hyperstrate_server_internal_modules_observability_domain_AgentSessionSummary'
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List agent sessions
+      tags:
+      - hyperstrate
+      - observability
+  /analytics/agent-sessions/{sessionId}/events:
+    get:
+      parameters:
+      - description: Agent session ID
+        in: path
+        name: sessionId
+        required: true
+        type: string
+      - description: Page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Items per page (default 30, max 500)
+        in: query
+        name: perPage
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.Paginated-hyperstrate_server_internal_modules_observability_domain_AgentSessionEvent'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List events for an agent session
+      tags:
+      - hyperstrate
+      - observability
+  /analytics/agent-sessions/{sessionId}/insights:
+    get:
+      parameters:
+      - description: Agent session ID
+        in: path
+        name: sessionId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                $ref: '#/definitions/hyperstrate_server_internal_modules_observability_domain.AgentSessionInsights'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get insights for an agent session
+      tags:
+      - hyperstrate
+      - observability
+  /analytics/agent-sessions/{sessionId}/logs:
+    get:
+      parameters:
+      - description: Agent session ID
+        in: path
+        name: sessionId
+        required: true
+        type: string
+      - description: Start date YYYY-MM-DD
+        in: query
+        name: from
+        type: string
+      - description: End date YYYY-MM-DD
+        in: query
+        name: to
+        type: string
+      - description: Page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Items per page (default 30, max 500)
+        in: query
+        name: perPage
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.Paginated-internal_modules_observability_interfaces_http_InferenceLogResponse'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List inference logs for an agent session
+      tags:
+      - hyperstrate
+      - observability
+  /analytics/audit:
+    get:
+      description: Returns admin-action audit log entries for the organisation, newest
+        first
+      parameters:
+      - description: Max entries to return (default 50, max 200)
+        in: query
+        name: limit
+        type: integer
+      - description: Number of entries to skip (default 0)
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/definitions/hyperstrate_server_internal_modules_observability_domain.AuditLog'
+                type: array
+              total:
+                type: integer
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List audit logs
+      tags:
+      - hyperstrate
+      - observability
+  /analytics/cache:
+    get:
+      description: Returns cache hit rate and breakdown (exact vs semantic) for the
+        organisation
+      parameters:
+      - description: Start date YYYY-MM-DD
+        in: query
+        name: from
+        type: string
+      - description: End date YYYY-MM-DD
+        in: query
+        name: to
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_observability_domain.CacheStats'
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Cache hit/miss statistics
+      tags:
+      - hyperstrate
+      - observability
+  /analytics/compression-events:
+    get:
+      parameters:
+      - description: Filter by agent session ID
+        in: query
+        name: sessionId
+        type: string
+      - description: Page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Items per page (default 30, max 500)
+        in: query
+        name: perPage
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.Paginated-hyperstrate_server_internal_modules_observability_domain_CompressionEvent'
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List context compression events
+      tags:
+      - hyperstrate
+      - observability
+  /analytics/costly-prompts:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/definitions/hyperstrate_server_internal_modules_observability_domain.CostlyPrompt'
+                type: array
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List costly prompt turns
+      tags:
+      - hyperstrate
+      - observability
+  /analytics/errors:
+    get:
+      description: Returns the most recent failed inference log entries, useful for
+        debugging
+      parameters:
+      - description: Max entries to return (default 50, max 500)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/definitions/hyperstrate_server_internal_modules_observability_domain.InferenceLog'
+                type: array
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Recent inference errors
+      tags:
+      - hyperstrate
+      - observability
+  /analytics/inference-logs:
+    get:
+      description: Returns a paginated list of raw inference log entries, optionally
+        filtered by router, virtual key, status, or date range
+      parameters:
+      - description: Filter by router ID
+        in: query
+        name: routerId
+        type: string
+      - description: Filter by virtual key ID
+        in: query
+        name: virtualKeyId
+        type: string
+      - description: 'Filter by status: success | error'
+        in: query
+        name: status
+        type: string
+      - description: Start date YYYY-MM-DD
+        in: query
+        name: from
+        type: string
+      - description: End date YYYY-MM-DD
+        in: query
+        name: to
+        type: string
+      - description: Page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Items per page (default 30, max 500)
+        in: query
+        name: perPage
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.Paginated-internal_modules_observability_interfaces_http_InferenceLogResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List inference logs
+      tags:
+      - hyperstrate
+      - observability
+  /analytics/inference-logs/{id}/feedback:
+    patch:
+      consumes:
+      - application/json
+      description: Records a quality signal (1=positive, -1=negative, 0=clear) on
+        an inference log entry
+      parameters:
+      - description: Inference log ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Feedback value
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            feedback:
+              type: integer
+          type: object
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Submit inference feedback
+      tags:
+      - hyperstrate
+      - observability
+  /analytics/inference-logs/{id}/payload:
+    get:
+      description: Returns the full request fields and response content for a log
+        entry (only available when store_payloads is enabled on the router)
+      parameters:
+      - description: Inference log ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_observability_domain.InferencePayload'
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get stored inference payload
+      tags:
+      - hyperstrate
+      - observability
+  /analytics/inference-logs/{id}/replay:
+    post:
+      description: Re-runs the stored request through the same router and returns
+        the new response
+      parameters:
+      - description: Inference log ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_modules_observability_interfaces_http.ReplayResult'
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "422":
+          description: Unprocessable Entity
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Replay an inference log entry
+      tags:
+      - hyperstrate
+      - observability
+  /analytics/inference-logs/export:
+    get:
+      description: Streams a CSV file of inference log entries matching the given
+        filters
+      parameters:
+      - description: Filter by router ID
+        in: query
+        name: routerId
+        type: string
+      - description: Filter by virtual key ID
+        in: query
+        name: virtualKeyId
+        type: string
+      - description: 'Filter by status: success | error'
+        in: query
+        name: status
+        type: string
+      - description: Start date YYYY-MM-DD
+        in: query
+        name: from
+        type: string
+      - description: End date YYYY-MM-DD
+        in: query
+        name: to
+        type: string
+      produces:
+      - text/csv
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Export inference logs as CSV
+      tags:
+      - hyperstrate
+      - observability
+  /analytics/latency:
+    get:
+      description: Returns p50/p95/p99 latency statistics per model for successful
+        inferences
+      parameters:
+      - description: Start date YYYY-MM-DD
+        in: query
+        name: from
+        type: string
+      - description: End date YYYY-MM-DD
+        in: query
+        name: to
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/definitions/hyperstrate_server_internal_modules_observability_domain.LatencyStats'
+                type: array
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Latency percentiles by model
+      tags:
+      - hyperstrate
+      - observability
+  /analytics/loops:
+    get:
+      parameters:
+      - description: Filter by agent session ID
+        in: query
+        name: sessionId
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/definitions/hyperstrate_server_internal_modules_observability_domain.LoopDetection'
+                type: array
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List loop detections
+      tags:
+      - hyperstrate
+      - observability
+  /analytics/models:
+    get:
+      description: Returns total requests, tokens, cost, and error count aggregated
+        per registered model
+      parameters:
+      - description: Start date YYYY-MM-DD
+        in: query
+        name: from
+        type: string
+      - description: End date YYYY-MM-DD
+        in: query
+        name: to
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/definitions/internal_modules_observability_interfaces_http.ModelUsageResponse'
+                type: array
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Usage by model
+      tags:
+      - hyperstrate
+      - observability
+  /analytics/routers:
+    get:
+      description: Returns total requests, cost, and error count aggregated per router
+      parameters:
+      - description: Start date YYYY-MM-DD
+        in: query
+        name: from
+        type: string
+      - description: End date YYYY-MM-DD
+        in: query
+        name: to
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/definitions/internal_modules_observability_interfaces_http.RouterUsageResponse'
+                type: array
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Usage by router
+      tags:
+      - hyperstrate
+      - observability
+  /analytics/routers/{routerId}/pipeline-stats:
+    get:
+      description: Returns a breakdown of pipeline feature and interceptor outcomes
+        for a specific router, derived from stored pipeline traces. Cache stats come
+        from the database; feature/interceptor stats are aggregated from the most
+        recent 500 traced requests in the date range.
+      parameters:
+      - description: Router ID
+        in: path
+        name: routerId
+        required: true
+        type: string
+      - description: 'Start date YYYY-MM-DD (default: 30 days ago)'
+        in: query
+        name: from
+        type: string
+      - description: 'End date YYYY-MM-DD (default: today)'
+        in: query
+        name: to
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_observability_domain.RouterPipelineStats'
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Router pipeline stats
+      tags:
+      - hyperstrate
+      - observability
+  /analytics/routers/{routerId}/webhook-deliveries:
+    get:
+      description: Returns recent webhook delivery records (success and failure) for
+        the given router
+      parameters:
+      - description: Router ID
+        in: path
+        name: routerId
+        required: true
+        type: string
+      - description: Max entries to return (default 50, max 200)
+        in: query
+        name: limit
+        type: integer
+      - description: Number of entries to skip (default 0)
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/definitions/hyperstrate_server_internal_modules_observability_domain.WebhookDelivery'
+                type: array
+              total:
+                type: integer
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List webhook delivery attempts for a router
+      tags:
+      - hyperstrate
+      - observability
+  /analytics/subagents:
+    get:
+      parameters:
+      - description: Filter by parent session ID
+        in: query
+        name: sessionId
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/definitions/hyperstrate_server_internal_modules_observability_domain.SubagentBreakdown'
+                type: array
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List subagent cost breakdown
+      tags:
+      - hyperstrate
+      - observability
+  /analytics/tool-archives:
+    get:
+      parameters:
+      - description: Filter by agent session ID
+        in: query
+        name: sessionId
+        type: string
+      - description: Page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Items per page (default 30, max 500)
+        in: query
+        name: perPage
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.Paginated-hyperstrate_server_internal_modules_observability_domain_ToolCallArchive'
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List tool call archives
+      tags:
+      - hyperstrate
+      - observability
+  /analytics/tool-archives/{id}:
+    get:
+      parameters:
+      - description: Tool archive ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                $ref: '#/definitions/hyperstrate_server_internal_modules_observability_domain.ToolCallArchive'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get a tool call archive by ID
+      tags:
+      - hyperstrate
+      - observability
+  /analytics/usage:
+    get:
+      description: Returns aggregated inference usage bucketed by the requested granularity
+        (hour / day / month)
+      parameters:
+      - description: 'Start date YYYY-MM-DD (default: 30 days ago)'
+        in: query
+        name: from
+        type: string
+      - description: 'End date YYYY-MM-DD (default: today)'
+        in: query
+        name: to
+        type: string
+      - description: 'Bucket size: hour | day | month (default: day)'
+        in: query
+        name: granularity
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/definitions/hyperstrate_server_internal_modules_observability_domain.AggregatedUsage'
+                type: array
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Usage over time
+      tags:
+      - hyperstrate
+      - observability
+  /analytics/virtual-keys:
+    get:
+      description: Returns request count, token usage, cost, and error count aggregated
+        per virtual key
+      parameters:
+      - description: Start date YYYY-MM-DD
+        in: query
+        name: from
+        type: string
+      - description: End date YYYY-MM-DD
+        in: query
+        name: to
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/definitions/hyperstrate_server_internal_modules_observability_domain.VirtualKeyUsage'
+                type: array
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Usage by virtual key
+      tags:
+      - hyperstrate
+      - observability
+  /auth/api-keys:
+    get:
+      parameters:
+      - description: Filter by router ID
+        in: query
+        name: routerId
+        type: string
+      - description: Filter by team ID
+        in: query
+        name: teamId
+        type: string
+      - description: Page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Items per page (default 30, max 500)
+        in: query
+        name: perPage
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.Paginated-internal_modules_auth_interfaces_http_APIKeyResponse'
+      security:
+      - BearerAuth: []
+      summary: List API keys
+      tags:
+      - hyperstrate
+      - auth
+    post:
+      consumes:
+      - application/json
+      description: Creates a team-owned API key, optionally scoped to a router. The
+        plaintext key is returned once.
+      parameters:
+      - description: Key input
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_auth_application.CreateAPIKeyInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_modules_auth_interfaces_http.APIKeyCreatedResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_auth_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create an API key
+      tags:
+      - hyperstrate
+      - auth
+  /auth/api-keys/{id}:
+    delete:
+      parameters:
+      - description: Key ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_auth_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Revoke an API key
+      tags:
+      - hyperstrate
+      - auth
+  /auth/api-keys/{id}/rotate:
+    post:
+      description: Generates a new secret for the key, revokes the old one, and returns
+        the new plaintext once.
+      parameters:
+      - description: API key ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_modules_auth_interfaces_http.APIKeyCreatedResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_auth_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Rotate an API key secret
+      tags:
+      - hyperstrate
+      - auth
+  /auth/me:
+    get:
+      description: Picks up any changes since the original token was signed (e.g.
+        orgId assigned after setup).
+      produces:
+      - application/json
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_auth_application.SessionResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_modules_auth_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      - BearerAuth: []
+      summary: Re-issue a session token for the current user
+      tags:
+      - hyperstrate
+      - auth
+      - hyperstrate
+      - auth
+  /auth/oidc/exchange:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: OIDC access token
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            token:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              token:
+                type: string
+              user:
+                $ref: '#/definitions/hyperstrate_server_internal_modules_auth_application.UserResponse'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_auth_interfaces_http.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_modules_auth_interfaces_http.ErrorResponse'
+      summary: Exchange an OIDC access token for a session token
+      tags:
+      - hyperstrate
+      - auth
+  /auth/oidc/group-mappings:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/definitions/hyperstrate_server_internal_modules_auth_domain.OIDCGroupMapping'
+                type: array
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List OIDC group → team mappings
+      tags:
+      - hyperstrate
+      - auth
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Mapping
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            groupName:
+              type: string
+            teamId:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_auth_domain.OIDCGroupMapping'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_auth_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create an OIDC group → team mapping
+      tags:
+      - hyperstrate
+      - auth
+  /auth/oidc/group-mappings/{id}:
+    delete:
+      parameters:
+      - description: Mapping ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_auth_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete an OIDC group → team mapping
+      tags:
+      - hyperstrate
+      - auth
+  /auth/organizations:
+    get:
+      parameters:
+      - description: Page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Items per page (default 30, max 500)
+        in: query
+        name: perPage
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.Paginated-hyperstrate_server_internal_modules_auth_application_OrganizationResponse'
+      security:
+      - BearerAuth: []
+      summary: List organisations
+      tags:
+      - hyperstrate
+      - auth
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Org input
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_auth_application.CreateOrganizationInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_auth_application.OrganizationResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_auth_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create an organisation
+      tags:
+      - hyperstrate
+      - auth
+  /auth/organizations/{orgId}:
+    delete:
+      parameters:
+      - description: Org ID
+        in: path
+        name: orgId
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_auth_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete an organisation
+      tags:
+      - hyperstrate
+      - auth
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Org ID
+        in: path
+        name: orgId
+        required: true
+        type: string
+      - description: Fields to update
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_auth_application.UpdateOrganizationInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_auth_application.OrganizationResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_auth_interfaces_http.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_auth_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update an organisation
+      tags:
+      - hyperstrate
+      - auth
+  /auth/refresh:
+    post:
+      description: Picks up any changes since the original token was signed (e.g.
+        orgId assigned after setup).
+      produces:
+      - application/json
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_auth_application.SessionResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_modules_auth_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      - BearerAuth: []
+      summary: Re-issue a session token for the current user
+      tags:
+      - hyperstrate
+      - auth
+      - hyperstrate
+      - auth
+  /auth/setup:
+    post:
+      consumes:
+      - application/json
+      description: Creates the initial organisation and assigns the calling user as
+        admin. Fails if an org already exists.
+      parameters:
+      - description: Setup input
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_auth_application.SetupInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_auth_application.OrganizationResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_auth_interfaces_http.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/internal_modules_auth_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create the first organisation (one-time setup)
+      tags:
+      - hyperstrate
+      - auth
+  /auth/setup/status:
+    get:
+      description: 'Returns { required: true } when no organisation exists yet'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_auth_application.SetupStatusResponse'
+      summary: Check if initial setup is required
+      tags:
+      - hyperstrate
+      - auth
+  /auth/sso-providers/public:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: object
+            type: array
+      summary: List enabled SSO provider types (public)
+      tags:
+      - hyperstrate
+      - auth
+  /auth/teams:
+    get:
+      parameters:
+      - collectionFormat: multi
+        description: Fetch specific teams by ID (bypasses pagination)
+        in: query
+        items:
+          type: string
+        name: ids
+        type: array
+      - description: Page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Items per page (default 30, max 500)
+        in: query
+        name: perPage
+        type: integer
+      - description: Search by team ID, name, or description
+        in: query
+        name: query
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.Paginated-hyperstrate_server_internal_modules_auth_application_TeamResponse'
+      security:
+      - BearerAuth: []
+      summary: List teams in the caller's organisation
+      tags:
+      - hyperstrate
+      - auth
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Team input
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_auth_application.CreateTeamInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_auth_application.TeamResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a team
+      tags:
+      - hyperstrate
+      - auth
+  /auth/teams/{id}:
+    delete:
+      parameters:
+      - description: Team ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Delete a team
+      tags:
+      - hyperstrate
+      - auth
+    get:
+      parameters:
+      - description: Team ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_auth_application.TeamResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_auth_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a team by ID
+      tags:
+      - hyperstrate
+      - auth
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Team ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Fields to update
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_auth_application.UpdateTeamInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_auth_application.TeamResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a team
+      tags:
+      - hyperstrate
+      - auth
+  /auth/teams/{id}/members:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Team ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: User ID
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            userId:
+              type: string
+          type: object
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_auth_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Add a user to a team
+      tags:
+      - hyperstrate
+      - auth
+  /auth/teams/{id}/members/{userId}:
+    delete:
+      parameters:
+      - description: Team ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Remove a user from a team
+      tags:
+      - hyperstrate
+      - auth
+  /auth/users:
+    get:
+      parameters:
+      - description: Page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Items per page (default 30, max 500)
+        in: query
+        name: perPage
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.Paginated-hyperstrate_server_internal_modules_auth_application_UserResponse'
+      security:
+      - BearerAuth: []
+      summary: List all users
+      tags:
+      - hyperstrate
+      - auth
+  /auth/users/{id}:
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Fields to update
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_auth_application.UpdateUserInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_auth_application.UserResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a user (role / org assignment)
+      tags:
+      - hyperstrate
+      - auth
+  /auth/virtual-keys:
+    get:
+      parameters:
+      - description: Filter by router ID
+        in: query
+        name: routerId
+        type: string
+      - description: Filter by team ID
+        in: query
+        name: teamId
+        type: string
+      - description: Page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Items per page (default 30, max 500)
+        in: query
+        name: perPage
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.Paginated-internal_modules_auth_interfaces_http_VirtualKeyResponse'
+      security:
+      - BearerAuth: []
+      summary: List virtual keys
+      tags:
+      - hyperstrate
+      - auth
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Virtual key input
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_auth_application.CreateVirtualKeyInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_modules_auth_interfaces_http.VirtualKeyCreatedResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a virtual key
+      tags:
+      - hyperstrate
+      - auth
+  /auth/virtual-keys/{id}:
+    delete:
+      parameters:
+      - description: Virtual key ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Revoke a virtual key
+      tags:
+      - hyperstrate
+      - auth
+    get:
+      parameters:
+      - description: Virtual key ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_modules_auth_interfaces_http.VirtualKeyResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_auth_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a virtual key by ID
+      tags:
+      - hyperstrate
+      - auth
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Virtual key ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Fields to update
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_auth_application.UpdateVirtualKeyInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_modules_auth_interfaces_http.VirtualKeyResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a virtual key
+      tags:
+      - hyperstrate
+      - auth
+  /health/providers:
+    get:
+      description: Returns the last health-check result for every registered model
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                items:
+                  $ref: '#/definitions/hyperstrate_server_internal_modules_observability_domain.ProviderHealth'
+                type: array
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            properties:
+              error:
+                type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Provider health status
+      tags:
+      - hyperstrate
+      - observability
+  /prompts:
+    get:
+      description: Returns paginated system prompts
+      parameters:
+      - description: Page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Items per page (default 30, max 500)
+        in: query
+        name: perPage
+        type: integer
+      - description: Search by prompt ID, name, description, or content
+        in: query
+        name: query
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.Paginated-hyperstrate_server_internal_modules_prompts_application_PromptResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_modules_prompts_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List system prompts
+      tags:
+      - hyperstrate
+      - prompts
+    post:
+      consumes:
+      - application/json
+      description: Creates a reusable named system prompt with optional {{variable}}
+        placeholders
+      parameters:
+      - description: Prompt input
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_prompts_application.CreatePromptInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_prompts_application.PromptResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_prompts_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a system prompt
+      tags:
+      - hyperstrate
+      - prompts
+  /prompts/{id}:
+    delete:
+      parameters:
+      - description: Prompt ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_prompts_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a system prompt
+      tags:
+      - hyperstrate
+      - prompts
+    get:
+      description: Returns a single system prompt by ID
+      parameters:
+      - description: Prompt ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_prompts_application.PromptResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_prompts_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a system prompt
+      tags:
+      - hyperstrate
+      - prompts
+    patch:
+      consumes:
+      - application/json
+      description: Updates the name, description, or content of a system prompt
+      parameters:
+      - description: Prompt ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Fields to update
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_prompts_application.UpdatePromptInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_prompts_application.PromptResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_prompts_interfaces_http.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_prompts_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a system prompt
+      tags:
+      - hyperstrate
+      - prompts
+  /prompts/{id}/versions:
+    get:
+      description: Returns immutable snapshots of a prompt, newest first
+      parameters:
+      - description: Prompt ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Items per page (default 30, max 500)
+        in: query
+        name: perPage
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.Paginated-hyperstrate_server_internal_modules_prompts_application_PromptVersionResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_prompts_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List prompt versions
+      tags:
+      - hyperstrate
+      - prompts
+  /prompts/{id}/versions/{versionId}:
+    get:
+      description: Returns one immutable snapshot by ID
+      parameters:
+      - description: Prompt ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Version ID
+        in: path
+        name: versionId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_prompts_application.PromptVersionResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_prompts_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a prompt version
+      tags:
+      - hyperstrate
+      - prompts
+  /prompts/{id}/versions/{versionId}/restore:
+    post:
+      description: Copies the content of the specified version back to the live prompt
+        and creates a new version snapshot
+      parameters:
+      - description: Prompt ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Version ID to restore
+        in: path
+        name: versionId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_prompts_application.PromptResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_prompts_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Restore a prompt to a previous version
+      tags:
+      - hyperstrate
+      - prompts
+  /router:
+    get:
+      description: Returns paginated routers
+      parameters:
+      - description: Page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Items per page (default 30, max 500)
+        in: query
+        name: perPage
+        type: integer
+      - description: Search by router ID, name, or description
+        in: query
+        name: query
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.Paginated-hyperstrate_server_internal_modules_router_application_RouterResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List routers
+      tags:
+      - hyperstrate
+      - routers
+    post:
+      consumes:
+      - application/json
+      description: Creates a new router with the given name, description, and routing
+        strategy
+      parameters:
+      - description: Router input
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.CreateRouterInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.RouterResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a router
+      tags:
+      - hyperstrate
+      - routers
+  /router/{id}:
+    delete:
+      description: Deletes a router and all its targets, features, and interceptors
+      parameters:
+      - description: Router ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a router
+      tags:
+      - hyperstrate
+      - routers
+    get:
+      description: Returns a single router by ID
+      parameters:
+      - description: Router ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.RouterResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a router
+      tags:
+      - hyperstrate
+      - routers
+    patch:
+      consumes:
+      - application/json
+      description: Updates the name, description, status, or strategy of a router
+      parameters:
+      - description: Router ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Fields to update
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.UpdateRouterInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.RouterResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a router
+      tags:
+      - hyperstrate
+      - routers
+  /router/{id}/access:
+    get:
+      description: Returns all team IDs that have explicit inference access to the
+        router. An empty list means the router is open to all authenticated callers.
+      parameters:
+      - description: Router ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/hyperstrate_server_internal_modules_router_domain.RouterTeamAccess'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List team access grants for a router
+      tags:
+      - hyperstrate
+      - routers
+    post:
+      consumes:
+      - application/json
+      description: Adds the given team to the router's explicit allow-list
+      parameters:
+      - description: Router ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Team ID to grant
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            teamId:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Grant a team access to a router
+      tags:
+      - hyperstrate
+      - routers
+  /router/{id}/access/{teamId}:
+    delete:
+      description: Removes the given team from the router's explicit allow-list
+      parameters:
+      - description: Router ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Team ID to revoke
+        in: path
+        name: teamId
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Revoke a team's access to a router
+      tags:
+      - hyperstrate
+      - routers
+  /router/{id}/benchmark:
+    post:
+      consumes:
+      - application/json
+      description: Fires N concurrent inference requests and returns P50/P95/P99 latency,
+        throughput, and cost
+      parameters:
+      - description: Router ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Benchmark input
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            concurrency:
+              type: integer
+            options:
+              type: object
+            prompt:
+              type: string
+            totalRequests:
+              type: integer
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.BenchmarkResult'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Run a load test against a router
+      tags:
+      - hyperstrate
+      - routers
+  /router/{id}/budget:
+    get:
+      parameters:
+      - description: Router ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.BudgetStatus'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get current budget usage for a router
+      tags:
+      - hyperstrate
+      - routers
+  /router/{id}/export:
+    get:
+      description: Returns a portable JSON snapshot of the router, its targets, features,
+        and interceptors
+      parameters:
+      - description: Router ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.RouterExport'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Export router configuration
+      tags:
+      - hyperstrate
+      - routers
+  /router/{id}/features:
+    get:
+      description: Returns all pipeline features attached to a router
+      parameters:
+      - description: Router ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.RouterFeatureResponse'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List router features
+      tags:
+      - hyperstrate
+      - routers
+    post:
+      consumes:
+      - application/json
+      description: Attaches a pipeline feature (e.g. retry, cache, rate-limit) to
+        a router
+      parameters:
+      - description: Router ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Feature input
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.AddFeatureInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.RouterFeatureResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Add a feature to a router
+      tags:
+      - hyperstrate
+      - routers
+  /router/{id}/features/{featureId}:
+    delete:
+      description: Detaches a pipeline feature from a router
+      parameters:
+      - description: Router ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Feature ID
+        in: path
+        name: featureId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Remove a router feature
+      tags:
+      - hyperstrate
+      - routers
+    patch:
+      consumes:
+      - application/json
+      description: Updates the config, execution order, or enabled state of a feature
+      parameters:
+      - description: Router ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Feature ID
+        in: path
+        name: featureId
+        required: true
+        type: string
+      - description: Fields to update
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.UpdateFeatureInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.RouterFeatureResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a router feature
+      tags:
+      - hyperstrate
+      - routers
+  /router/{id}/features/{featureId}/mcp/tools:
+    get:
+      description: Calls ListTools on all MCP servers attached to a router's mcp_tools
+        feature
+      parameters:
+      - description: Router ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Feature ID
+        in: path
+        name: featureId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.MCPServerTools'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Preview MCP tools
+      tags:
+      - hyperstrate
+      - routers
+  /router/{id}/infer:
+    post:
+      consumes:
+      - application/json
+      description: Selects a target model according to the router's strategy and forwards
+        the inference request
+      parameters:
+      - description: Router ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Inference request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.RouteInferInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.RouteInferResult'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Route an inference request
+      tags:
+      - hyperstrate
+      - routers
+  /router/{id}/infer/stream:
+    post:
+      consumes:
+      - application/json
+      description: Streams inference deltas as server-sent events (text/event-stream)
+      parameters:
+      - description: Router ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Inference request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.RouteInferInput'
+      produces:
+      - text/event-stream
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Route a streaming inference request
+      tags:
+      - hyperstrate
+      - routers
+  /router/{id}/interceptors:
+    get:
+      description: Returns all pre-routing interceptors attached to a router, ordered
+        by execution_order
+      parameters:
+      - description: Router ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.RouterInterceptorResponse'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List router interceptors
+      tags:
+      - hyperstrate
+      - routers
+    post:
+      consumes:
+      - application/json
+      description: Attaches a pre-routing interceptor (e.g. semantic_classifier, content_filter)
+        to a router
+      parameters:
+      - description: Router ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Interceptor input
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.AddInterceptorInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.RouterInterceptorResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Add an interceptor to a router
+      tags:
+      - hyperstrate
+      - routers
+  /router/{id}/interceptors/{interceptorId}:
+    delete:
+      description: Detaches an interceptor from a router
+      parameters:
+      - description: Router ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Interceptor ID
+        in: path
+        name: interceptorId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Remove a router interceptor
+      tags:
+      - hyperstrate
+      - routers
+    patch:
+      consumes:
+      - application/json
+      description: Updates the config, execution order, or enabled state of an interceptor
+      parameters:
+      - description: Router ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Interceptor ID
+        in: path
+        name: interceptorId
+        required: true
+        type: string
+      - description: Fields to update
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.UpdateInterceptorInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.RouterInterceptorResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a router interceptor
+      tags:
+      - hyperstrate
+      - routers
+  /router/{id}/lint:
+    get:
+      description: Returns warnings and errors for potentially unsafe feature/interceptor
+        combinations
+      parameters:
+      - description: Router ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.RouterLintResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Check router compatibility
+      tags:
+      - hyperstrate
+      - routers
+  /router/{id}/targets:
+    get:
+      description: Returns all targets (model assignments) for a router
+      parameters:
+      - description: Router ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/internal_modules_router_interfaces_http.RouterTargetResponse'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List router targets
+      tags:
+      - hyperstrate
+      - routers
+    post:
+      consumes:
+      - application/json
+      description: Attaches a model to a router with strategy-specific routing parameters
+      parameters:
+      - description: Router ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Target input
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.AddTargetInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.RouterTargetResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Add a target to a router
+      tags:
+      - hyperstrate
+      - routers
+  /router/{id}/targets/{targetId}:
+    delete:
+      description: Detaches a model from a router
+      parameters:
+      - description: Router ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Target ID
+        in: path
+        name: targetId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Remove a router target
+      tags:
+      - hyperstrate
+      - routers
+    patch:
+      consumes:
+      - application/json
+      description: Updates weight, percentage, priority, or enabled state of a target
+      parameters:
+      - description: Router ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Target ID
+        in: path
+        name: targetId
+        required: true
+        type: string
+      - description: Fields to update
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.UpdateTargetInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.RouterTargetResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a router target
+      tags:
+      - hyperstrate
+      - routers
+  /router/{id}/v1/chat/completions:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        Accepts an OpenAI /v1/chat/completions request body and routes it through the router pipeline.
+        When stream=true the response is an SSE stream of chat.completion.chunk objects.
+      parameters:
+      - description: Router ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: OpenAI chat completions request
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: OpenAI-compatible chat completions
+      tags:
+      - hyperstrate
+      - routers
+  /router/{id}/v1/embeddings:
+    post:
+      consumes:
+      - application/json
+      description: Accepts an OpenAI /v1/embeddings request and routes it through
+        the router's embedding model.
+      parameters:
+      - description: Router ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: OpenAI embeddings request
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: OpenAI-compatible embeddings
+      tags:
+      - hyperstrate
+      - routers
+  /router/evaluations:
+    get:
+      parameters:
+      - description: Filter by router ID
+        in: query
+        name: routerId
+        type: string
+      - description: Page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Items per page (default 30, max 500)
+        in: query
+        name: perPage
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.Paginated-hyperstrate_server_internal_modules_router_application_EvaluationResponse'
+      security:
+      - BearerAuth: []
+      summary: List evaluations
+      tags:
+      - hyperstrate
+      - routers
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Evaluation input
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.CreateEvaluationInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.EvaluationResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create an evaluation
+      tags:
+      - hyperstrate
+      - routers
+  /router/evaluations/{evalId}:
+    delete:
+      parameters:
+      - description: Evaluation ID
+        in: path
+        name: evalId
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete an evaluation
+      tags:
+      - hyperstrate
+      - routers
+    get:
+      parameters:
+      - description: Evaluation ID
+        in: path
+        name: evalId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.EvaluationResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get an evaluation
+      tags:
+      - hyperstrate
+      - routers
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Evaluation ID
+        in: path
+        name: evalId
+        required: true
+        type: string
+      - description: Fields to update
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.UpdateEvaluationInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.EvaluationResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update an evaluation
+      tags:
+      - hyperstrate
+      - routers
+  /router/evaluations/{evalId}/cases:
+    get:
+      parameters:
+      - description: Evaluation ID
+        in: path
+        name: evalId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.EvaluationCaseResponse'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List evaluation cases
+      tags:
+      - hyperstrate
+      - routers
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Evaluation ID
+        in: path
+        name: evalId
+        required: true
+        type: string
+      - description: Case input
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.EvaluationCaseInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.EvaluationCaseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Add a test case to an evaluation
+      tags:
+      - hyperstrate
+      - routers
+  /router/evaluations/{evalId}/cases/{caseId}:
+    delete:
+      parameters:
+      - description: Evaluation ID
+        in: path
+        name: evalId
+        required: true
+        type: string
+      - description: Case ID
+        in: path
+        name: caseId
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Delete a test case
+      tags:
+      - hyperstrate
+      - routers
+  /router/evaluations/{evalId}/run:
+    post:
+      parameters:
+      - description: Evaluation ID
+        in: path
+        name: evalId
+        required: true
+        type: string
+      - description: Registered model ID used as LLM judge for 'llm' score method
+        in: query
+        name: judgeModelId
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.EvaluationRunResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Run all test cases in an evaluation
+      tags:
+      - hyperstrate
+      - routers
+  /router/evaluations/{evalId}/runs:
+    get:
+      parameters:
+      - description: Evaluation ID
+        in: path
+        name: evalId
+        required: true
+        type: string
+      - description: Page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Items per page (default 30, max 500)
+        in: query
+        name: perPage
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.Paginated-hyperstrate_server_internal_modules_router_application_EvaluationRunResponse'
+      security:
+      - BearerAuth: []
+      summary: List past evaluation runs
+      tags:
+      - hyperstrate
+      - routers
+  /router/import:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new router from an exported snapshot; model references
+        are resolved by definition key
+      parameters:
+      - description: Router export payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.ImportRouterInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.RouterResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_router_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Import router configuration
+      tags:
+      - hyperstrate
+      - routers
+  /router/metrics:
+    get:
+      description: Returns runtime counters and average latencies for all routers
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/hyperstrate_server_internal_modules_router_application.RouterMetricSnapshot'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Get router pipeline metrics
+      tags:
+      - hyperstrate
+      - routers
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

@@ -1,0 +1,109 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Hyperstrate AI proxy — API + async job worker
+
+Parameters:
+  DatabaseDSN:
+    Type: String
+    # SQLite works only when both functions share the same EFS mount or you
+    # replace this with a real shared DB (RDS/Aurora) connection string.
+    # For local SAM testing the default below is fine.
+    Default: "file:/tmp/hyperstrate.db?cache=shared&_fk=1"
+    Description: >
+      GORM data source name. For production replace with a PostgreSQL/MySQL DSN
+      pointing to RDS / Aurora Serverless so both Lambdas share the same DB.
+
+Globals:
+  Function:
+    Runtime: provided.al2023
+    Architectures:
+      - x86_64
+    Environment:
+      Variables:
+        APP_ENV: production
+        DATABASE_DSN: !Ref DatabaseDSN
+
+Resources:
+
+  # ── SQS ──────────────────────────────────────────────────────────────────────
+
+  JobDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${AWS::StackName}-job-dlq"
+      MessageRetentionPeriod: 1209600  # 14 days
+
+  JobQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${AWS::StackName}-job-queue"
+      # VisibilityTimeout must be >= worker Lambda timeout (900 s) with some buffer.
+      VisibilityTimeout: 960
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt JobDLQ.Arn
+        maxReceiveCount: 3
+
+  # ── API Lambda ────────────────────────────────────────────────────────────────
+
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: bootstrap
+      Timeout: 30
+      MemorySize: 256
+      Environment:
+        Variables:
+          SQS_QUEUE_URL: !Ref JobQueue
+      Policies:
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt JobQueue.QueueName
+      Events:
+        ProxyApi:
+          Type: HttpApi
+          Properties:
+            Path: /{proxy+}
+            Method: ANY
+        RootApi:
+          Type: HttpApi
+          Properties:
+            Path: /
+            Method: ANY
+    Metadata:
+      BuildMethod: makefile
+
+  # ── Worker Lambda ─────────────────────────────────────────────────────────────
+
+  WorkerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: worker-bootstrap
+      # Allow up to 15 minutes for long-running AI jobs (Kling video gen, etc.)
+      Timeout: 900
+      MemorySize: 512
+      Events:
+        SQSTrigger:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt JobQueue.Arn
+            # Process one job per invocation so a single slow job doesn't block others.
+            BatchSize: 1
+            # Report individual message failures so SQS retries only the failed item.
+            FunctionResponseTypes:
+              - ReportBatchItemFailures
+    Metadata:
+      BuildMethod: makefile
+
+Outputs:
+  ApiUrl:
+    Description: API Gateway endpoint URL
+    Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com"
+
+  JobQueueURL:
+    Description: SQS queue where job IDs are published by the API
+    Value: !Ref JobQueue
+
+  JobDLQURL:
+    Description: Dead-letter queue for jobs that failed all retries
+    Value: !Ref JobDLQ

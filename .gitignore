@@ -1,0 +1,23 @@
+# Local databases
+.app.db
+*.db
+*.db-shm
+*.db-wal
+
+# Environment files
+.env
+.env.*
+!.env.example
+!.env.dist
+
+# Build and deployment outputs
+.aws-sam/
+dist/
+bootstrap
+worker-bootstrap
+api
+
+# Local agent/editor state
+.claude
+.agents
+.codex
