@@ -48,8 +48,8 @@ func (b *ModelEventBus) EmitDeleted(ctx context.Context, e ModelDeletedEvent) er
 
 // ── Inference events ──────────────────────────────────────────────────────────
 
-// InferenceLoggedEvent is emitted after every direct (non-router) inference call,
-// both successful and failed. Source is always "direct".
+// InferenceLoggedEvent is emitted after direct or async-job inference calls,
+// both successful and failed. Router calls use RouterInferenceLoggedEvent.
 type InferenceLoggedEvent struct {
 	OrgID        string
 	ModelID      string
@@ -57,11 +57,13 @@ type InferenceLoggedEvent struct {
 	Provider     string
 	InputTokens  int64
 	OutputTokens int64
-	CostUSD      float64
-	LatencyMs    int64
-	Status       string // "success" | "error"
-	ErrorMessage string
-	Source       string // always "direct" when emitted by the AI service
+	// CachedInputTokens counts input tokens served from provider-side prompt cache.
+	CachedInputTokens int64
+	CostUSD           float64
+	LatencyMs         int64
+	Status            string // "success" | "error"
+	ErrorMessage      string
+	Source            string // "direct" | "job"
 }
 
 // InferenceLoggedListener receives an InferenceLoggedEvent.

@@ -131,17 +131,18 @@ func registerInferenceListeners(
 
 	aiBus.OnLogged(func(e aiApplication.InferenceLoggedEvent) {
 		obs.LogInference(application.InferenceEntry{
-			OrgID:        e.OrgID,
-			ModelID:      e.ModelID,
-			ModelDefKey:  e.ModelDefKey,
-			Provider:     e.Provider,
-			InputTokens:  e.InputTokens,
-			OutputTokens: e.OutputTokens,
-			CostUSD:      e.CostUSD,
-			LatencyMs:    e.LatencyMs,
-			Status:       e.Status,
-			ErrorMessage: e.ErrorMessage,
-			Source:       e.Source,
+			OrgID:             e.OrgID,
+			ModelID:           e.ModelID,
+			ModelDefKey:       e.ModelDefKey,
+			Provider:          e.Provider,
+			InputTokens:       e.InputTokens,
+			OutputTokens:      e.OutputTokens,
+			CachedInputTokens: e.CachedInputTokens,
+			CostUSD:           e.CostUSD,
+			LatencyMs:         e.LatencyMs,
+			Status:            e.Status,
+			ErrorMessage:      e.ErrorMessage,
+			Source:            e.Source,
 		})
 	})
 

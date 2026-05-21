@@ -705,16 +705,29 @@ func (p *featurePipeline) run(
 			p.updateLatency(target.ID, float64(inferDur.Milliseconds()))
 		}
 
+		inputTokens := inferResult.InputTokens
+		outputTokens := inferResult.OutputTokens
+		cachedInputTokens := inferResult.CachedInputTokens
+		costUSD := inferResult.CostUSD
+		if wasCoalesced {
+			inputTokens = 0
+			outputTokens = 0
+			costUSD = 0
+			if cachedInputTokens <= 0 {
+				cachedInputTokens = estimateCachedInputTokens(fields)
+			}
+		}
+
 		var inferDetail string
 		if wasCoalesced {
 			inferDetail = fmt.Sprintf("%s · coalesced (0 upstream cost)", inferResult.ModelDefKey)
 		} else {
-			inferDetail = fmt.Sprintf("%s · %d↑ %d↓ tok", inferResult.ModelDefKey, inferResult.InputTokens, inferResult.OutputTokens)
-			if inferResult.CachedInputTokens > 0 {
-				inferDetail += fmt.Sprintf(" · %d cached", inferResult.CachedInputTokens)
+			inferDetail = fmt.Sprintf("%s · %d↑ %d↓ tok", inferResult.ModelDefKey, inputTokens, outputTokens)
+			if cachedInputTokens > 0 {
+				inferDetail += fmt.Sprintf(" · %d cached", cachedInputTokens)
 			}
-			if inferResult.CostUSD > 0 {
-				inferDetail += fmt.Sprintf(" · $%.5f", inferResult.CostUSD)
+			if costUSD > 0 {
+				inferDetail += fmt.Sprintf(" · $%.5f", costUSD)
 			}
 		}
 		inferOutcome := "success"
@@ -728,10 +741,10 @@ func (p *featurePipeline) run(
 			SelectedTargetID:  target.ID,
 			ModelDefKey:       inferResult.ModelDefKey,
 			Provider:          inferResult.Provider,
-			InputTokens:       inferResult.InputTokens,
-			OutputTokens:      inferResult.OutputTokens,
-			CachedInputTokens: inferResult.CachedInputTokens,
-			CostUSD:           inferResult.CostUSD,
+			InputTokens:       inputTokens,
+			OutputTokens:      outputTokens,
+			CachedInputTokens: cachedInputTokens,
+			CostUSD:           costUSD,
 			ABVariant:         abVariant,
 			ToolCalls:         inferResult.ToolCalls,
 		}

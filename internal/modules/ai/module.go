@@ -49,6 +49,7 @@ func WorkerModule() fx.Option {
 			persistence.NewModelKeyRotationRepository,
 			persistence.NewJobRepository,
 			proxy.NewHTTPProxy,
+			application.NewInferenceEventBus,
 			application.NewJobProcessor,
 		),
 	)

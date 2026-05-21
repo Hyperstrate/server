@@ -1255,7 +1255,7 @@ func (p *HTTPProxy) streamChatGPT(
 		defer close(ch)
 		defer resp.Body.Close()
 
-		var inputTokens, outputTokens int64
+		var inputTokens, outputTokens, cachedInputTokens int64
 		// toolCallArgs accumulates function argument strings keyed by call index.
 		type tcAcc struct {
 			ID   string
@@ -1273,7 +1273,7 @@ func (p *HTTPProxy) streamChatGPT(
 			}
 			data := strings.TrimPrefix(line, "data: ")
 			if data == "[DONE]" {
-				done := application.StreamChunk{Done: true, InputTokens: inputTokens, OutputTokens: outputTokens}
+				done := application.StreamChunk{Done: true, InputTokens: inputTokens, OutputTokens: outputTokens, CachedInputTokens: cachedInputTokens}
 				if len(toolCallAccum) > 0 {
 					calls := make([]map[string]any, 0, len(toolCallAccum))
 					for i := 0; i < len(toolCallAccum); i++ {
@@ -1311,8 +1311,11 @@ func (p *HTTPProxy) streamChatGPT(
 					} `json:"delta"`
 				} `json:"choices"`
 				Usage *struct {
-					PromptTokens     int `json:"prompt_tokens"`
-					CompletionTokens int `json:"completion_tokens"`
+					PromptTokens        int `json:"prompt_tokens"`
+					CompletionTokens    int `json:"completion_tokens"`
+					PromptTokensDetails *struct {
+						CachedTokens int `json:"cached_tokens"`
+					} `json:"prompt_tokens_details"`
 				} `json:"usage"`
 			}
 			if err := json.Unmarshal([]byte(data), &chunk); err != nil {
@@ -1321,6 +1324,9 @@ func (p *HTTPProxy) streamChatGPT(
 			if chunk.Usage != nil {
 				inputTokens = int64(chunk.Usage.PromptTokens)
 				outputTokens = int64(chunk.Usage.CompletionTokens)
+				if chunk.Usage.PromptTokensDetails != nil {
+					cachedInputTokens = int64(chunk.Usage.PromptTokensDetails.CachedTokens)
+				}
 			}
 			if len(chunk.Choices) > 0 {
 				delta := chunk.Choices[0].Delta
@@ -1381,7 +1387,7 @@ func (p *HTTPProxy) streamAnthropic(
 		defer close(ch)
 		defer resp.Body.Close()
 
-		var inputTokens, outputTokens int64
+		var inputTokens, outputTokens, cachedInputTokens int64
 		type toolUseAcc struct {
 			ID      string
 			Name    string
@@ -1401,7 +1407,8 @@ func (p *HTTPProxy) streamAnthropic(
 				Index   int    `json:"index"`
 				Message *struct {
 					Usage *struct {
-						InputTokens int `json:"input_tokens"`
+						InputTokens          int `json:"input_tokens"`
+						CacheReadInputTokens int `json:"cache_read_input_tokens"`
 					} `json:"usage"`
 				} `json:"message"`
 				ContentBlock *struct {
@@ -1425,6 +1432,7 @@ func (p *HTTPProxy) streamAnthropic(
 			case "message_start":
 				if event.Message != nil && event.Message.Usage != nil {
 					inputTokens = int64(event.Message.Usage.InputTokens)
+					cachedInputTokens = int64(event.Message.Usage.CacheReadInputTokens)
 				}
 			case "message_delta":
 				if event.Usage != nil {
@@ -1454,7 +1462,7 @@ func (p *HTTPProxy) streamAnthropic(
 					acc.Input.WriteString(event.Delta.PartialJSON)
 				}
 			case "message_stop":
-				done := application.StreamChunk{Done: true, InputTokens: inputTokens, OutputTokens: outputTokens}
+				done := application.StreamChunk{Done: true, InputTokens: inputTokens, OutputTokens: outputTokens, CachedInputTokens: cachedInputTokens}
 				if len(toolUses) > 0 {
 					calls := make([]canonicalToolCall, 0, len(toolUses))
 					for i := 0; i < len(toolUses); i++ {
@@ -1562,10 +1570,11 @@ func (p *HTTPProxy) streamWrapped(
 		ch <- application.StreamChunk{Delta: resp.Content}
 	}
 	ch <- application.StreamChunk{
-		Done:         true,
-		InputTokens:  resp.InputTokens,
-		OutputTokens: resp.OutputTokens,
-		ToolCalls:    resp.ToolCalls,
+		Done:              true,
+		InputTokens:       resp.InputTokens,
+		OutputTokens:      resp.OutputTokens,
+		CachedInputTokens: resp.CachedInputTokens,
+		ToolCalls:         resp.ToolCalls,
 	}
 	close(ch)
 	return ch, nil

@@ -3,6 +3,7 @@ package application_test
 import (
 	"context"
 	"errors"
+	"math"
 	"testing"
 	"time"
 
@@ -114,6 +115,7 @@ func (r *stubConvRepo) AddMessage(_ context.Context, _ string, msg *domain.Conve
 
 type stubJobRepo struct {
 	createErr error
+	job       *domain.Job
 	updated   []*domain.Job
 }
 
@@ -123,23 +125,43 @@ func (r *stubJobRepo) List(_ context.Context, _ string, _, _ int) ([]domain.Job,
 func (r *stubJobRepo) ListByStatus(_ context.Context, _ domain.JobStatus) ([]domain.Job, error) {
 	return nil, nil
 }
-func (r *stubJobRepo) Create(_ context.Context, _ *domain.Job) error { return r.createErr }
+func (r *stubJobRepo) Create(_ context.Context, job *domain.Job) error {
+	if r.createErr == nil {
+		r.job = job
+	}
+	return r.createErr
+}
 func (r *stubJobRepo) FindByID(_ context.Context, _, _ string) (*domain.Job, error) {
-	return nil, nil
+	if r.job == nil {
+		return nil, domain.ErrJobNotFound
+	}
+	return r.job, nil
 }
 func (r *stubJobRepo) FindByIDForWorker(_ context.Context, _ string) (*domain.Job, error) {
-	return nil, nil
+	if r.job == nil {
+		return nil, domain.ErrJobNotFound
+	}
+	return r.job, nil
 }
 func (r *stubJobRepo) Update(_ context.Context, job *domain.Job) error {
 	r.updated = append(r.updated, job)
+	r.job = job
 	return nil
 }
 
 type stubProxy struct {
 	streamFn func() (<-chan application.StreamChunk, error)
+	resp     *application.ProxyResponse
+	err      error
 }
 
 func (p *stubProxy) Send(_ context.Context, _ *domain.ModelDefinition, _ *domain.ModelConfiguration, _ *application.ProxyRequest) (*application.ProxyResponse, error) {
+	if p.err != nil {
+		return nil, p.err
+	}
+	if p.resp != nil {
+		return p.resp, nil
+	}
 	return &application.ProxyResponse{Content: "ok"}, nil
 }
 func (p *stubProxy) SendStream(_ context.Context, _ *domain.ModelDefinition, _ *domain.ModelConfiguration, _ *application.ProxyRequest) (<-chan application.StreamChunk, error) {
@@ -291,6 +313,103 @@ func TestSubmitJob_modelNotFound_returnsError(t *testing.T) {
 	_, err := svc.SubmitJob(context.Background(), application.SubmitJobRequest{ModelID: "missing"})
 	if err == nil {
 		t.Fatal("want error, got nil")
+	}
+}
+
+func TestProcessJob_successEmitsInferenceLogWithCost(t *testing.T) {
+	jobRepo := &stubJobRepo{job: &domain.Job{
+		ID:      "job_1",
+		OrgID:   "org_1",
+		ModelID: "mdl_1",
+		Status:  domain.JobStatusPending,
+		Fields:  map[string]string{"prompt": "hello"},
+	}}
+	inferBus := application.NewInferenceEventBus()
+	events := make(chan application.InferenceLoggedEvent, 1)
+	inferBus.OnLogged(func(e application.InferenceLoggedEvent) { events <- e })
+
+	processor := application.NewJobProcessor(
+		&stubModelRepo{model: validModel()},
+		&stubConfigRepo{cfg: validConfig()},
+		jobRepo,
+		&stubProxy{resp: &application.ProxyResponse{
+			Content:           "ok",
+			InputTokens:       1000,
+			OutputTokens:      250,
+			CachedInputTokens: 40,
+		}},
+		inferBus,
+	)
+
+	if err := processor.ProcessJob(context.Background(), "job_1"); err != nil {
+		t.Fatalf("ProcessJob returned error: %v", err)
+	}
+	if jobRepo.job.Status != domain.JobStatusCompleted {
+		t.Fatalf("job status = %s, want COMPLETED", jobRepo.job.Status)
+	}
+
+	select {
+	case got := <-events:
+		if got.Source != "job" || got.Status != "success" {
+			t.Fatalf("unexpected job event source/status: %q/%q", got.Source, got.Status)
+		}
+		if got.InputTokens != 1000 || got.OutputTokens != 250 {
+			t.Fatalf("event tokens = %d/%d, want 1000/250", got.InputTokens, got.OutputTokens)
+		}
+		if got.CachedInputTokens != 40 {
+			t.Fatalf("event cached input tokens = %d, want 40", got.CachedInputTokens)
+		}
+		wantCost := (1000*2.50 + 250*15.00) / 1_000_000
+		if math.Abs(got.CostUSD-wantCost) > 0.0000001 {
+			t.Fatalf("event cost = %f, want %f", got.CostUSD, wantCost)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for job inference event")
+	}
+}
+
+func TestInfer_emitsCachedInputTokens(t *testing.T) {
+	inferBus := application.NewInferenceEventBus()
+	events := make(chan application.InferenceLoggedEvent, 1)
+	inferBus.OnLogged(func(e application.InferenceLoggedEvent) { events <- e })
+	svc := application.NewService(
+		&stubModelRepo{model: validModel()},
+		&stubConfigRepo{cfg: validConfig()},
+		&stubRotationRepo{},
+		&stubConvRepo{},
+		&stubJobRepo{},
+		&stubProxy{resp: &application.ProxyResponse{
+			Content:           "ok",
+			InputTokens:       100,
+			OutputTokens:      20,
+			CachedInputTokens: 12,
+		}},
+		&stubProcessor{},
+		&stubDispatcher{},
+		application.NewModelEventBus(),
+		inferBus,
+		nil,
+		application.NewMCPServerEventBus(),
+	)
+
+	result, err := svc.Infer(context.Background(), application.InferRequest{
+		ModelID: "mdl_1",
+		Fields:  map[string]string{"prompt": "hello"},
+	})
+	if err != nil {
+		t.Fatalf("Infer returned error: %v", err)
+	}
+	if result.CachedInputTokens != 12 {
+		t.Fatalf("result cached input tokens = %d, want 12", result.CachedInputTokens)
+	}
+
+	select {
+	case got := <-events:
+		if got.CachedInputTokens != 12 {
+			t.Fatalf("event cached input tokens = %d, want 12", got.CachedInputTokens)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for direct inference event")
 	}
 }
 

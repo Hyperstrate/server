@@ -632,16 +632,17 @@ func (s *service) Infer(ctx context.Context, input InferRequest) (*InferenceResu
 	costUSD := def.ComputeCostUSD(resp.InputTokens, resp.OutputTokens)
 	if shouldLog(ctx) {
 		s.inferBus.Emit(InferenceLoggedEvent{
-			OrgID:        authDomain.OrgIDFromContext(ctx),
-			ModelID:      input.ModelID,
-			ModelDefKey:  model.ModelDefinitionKey,
-			Provider:     string(def.Provider),
-			InputTokens:  resp.InputTokens,
-			OutputTokens: resp.OutputTokens,
-			CostUSD:      costUSD,
-			LatencyMs:    latencyMs,
-			Status:       "success",
-			Source:       "direct",
+			OrgID:             authDomain.OrgIDFromContext(ctx),
+			ModelID:           input.ModelID,
+			ModelDefKey:       model.ModelDefinitionKey,
+			Provider:          string(def.Provider),
+			InputTokens:       resp.InputTokens,
+			OutputTokens:      resp.OutputTokens,
+			CachedInputTokens: resp.CachedInputTokens,
+			CostUSD:           costUSD,
+			LatencyMs:         latencyMs,
+			Status:            "success",
+			Source:            "direct",
 		})
 	}
 
@@ -739,12 +740,13 @@ func (s *service) InferStream(ctx context.Context, input InferRequest) (<-chan S
 		go func() {
 			defer close(out)
 			var lastErr error
-			var inputTokens, outputTokens int64
+			var inputTokens, outputTokens, cachedInputTokens int64
 		loop:
 			for chunk := range upstream {
 				if chunk.Done {
 					inputTokens = chunk.InputTokens
 					outputTokens = chunk.OutputTokens
+					cachedInputTokens = chunk.CachedInputTokens
 				}
 				if chunk.Err != nil {
 					lastErr = chunk.Err
@@ -758,15 +760,16 @@ func (s *service) InferStream(ctx context.Context, input InferRequest) (<-chan S
 			}
 			costUSD := def.ComputeCostUSD(inputTokens, outputTokens)
 			ev := InferenceLoggedEvent{
-				OrgID:        authDomain.OrgIDFromContext(ctx),
-				ModelID:      input.ModelID,
-				ModelDefKey:  model.ModelDefinitionKey,
-				Provider:     string(def.Provider),
-				InputTokens:  inputTokens,
-				OutputTokens: outputTokens,
-				CostUSD:      costUSD,
-				LatencyMs:    time.Since(streamStart).Milliseconds(),
-				Source:       "direct",
+				OrgID:             authDomain.OrgIDFromContext(ctx),
+				ModelID:           input.ModelID,
+				ModelDefKey:       model.ModelDefinitionKey,
+				Provider:          string(def.Provider),
+				InputTokens:       inputTokens,
+				OutputTokens:      outputTokens,
+				CachedInputTokens: cachedInputTokens,
+				CostUSD:           costUSD,
+				LatencyMs:         time.Since(streamStart).Milliseconds(),
+				Source:            "direct",
 			}
 			if lastErr != nil {
 				ev.Status = "error"
@@ -785,7 +788,7 @@ func (s *service) InferStream(ctx context.Context, input InferRequest) (<-chan S
 		defer close(out)
 		var buf []byte
 		var lastErr error
-		var inputTokens, outputTokens int64
+		var inputTokens, outputTokens, cachedInputTokens int64
 	loop:
 		for chunk := range upstream {
 			if chunk.Delta != "" {
@@ -794,6 +797,7 @@ func (s *service) InferStream(ctx context.Context, input InferRequest) (<-chan S
 			if chunk.Done {
 				inputTokens = chunk.InputTokens
 				outputTokens = chunk.OutputTokens
+				cachedInputTokens = chunk.CachedInputTokens
 			}
 			if chunk.Err != nil {
 				lastErr = chunk.Err
@@ -809,6 +813,7 @@ func (s *service) InferStream(ctx context.Context, input InferRequest) (<-chan S
 					if rem.Done {
 						inputTokens = rem.InputTokens
 						outputTokens = rem.OutputTokens
+						cachedInputTokens = rem.CachedInputTokens
 					}
 				}
 				break loop
@@ -830,15 +835,16 @@ func (s *service) InferStream(ctx context.Context, input InferRequest) (<-chan S
 		if shouldLog(ctx) {
 			costUSD := def.ComputeCostUSD(inputTokens, outputTokens)
 			ev := InferenceLoggedEvent{
-				OrgID:        authDomain.OrgIDFromContext(ctx),
-				ModelID:      input.ModelID,
-				ModelDefKey:  model.ModelDefinitionKey,
-				Provider:     string(def.Provider),
-				InputTokens:  inputTokens,
-				OutputTokens: outputTokens,
-				CostUSD:      costUSD,
-				LatencyMs:    time.Since(streamStart).Milliseconds(),
-				Source:       "direct",
+				OrgID:             authDomain.OrgIDFromContext(ctx),
+				ModelID:           input.ModelID,
+				ModelDefKey:       model.ModelDefinitionKey,
+				Provider:          string(def.Provider),
+				InputTokens:       inputTokens,
+				OutputTokens:      outputTokens,
+				CachedInputTokens: cachedInputTokens,
+				CostUSD:           costUSD,
+				LatencyMs:         time.Since(streamStart).Milliseconds(),
+				Source:            "direct",
 			}
 			if lastErr != nil {
 				ev.Status = "error"

@@ -156,13 +156,14 @@ type SubmitJobRequest struct {
 
 // StreamChunk is a single content delta yielded by a streaming inference response.
 // The channel returned by InferStream emits these until Done is true or Err is set.
-// InputTokens, OutputTokens, and ToolCalls are non-zero only on the Done chunk.
+// InputTokens, OutputTokens, CachedInputTokens, and ToolCalls are non-zero only on the Done chunk.
 type StreamChunk struct {
-	Delta        string
-	Done         bool
-	Err          error
-	InputTokens  int64
-	OutputTokens int64
+	Delta             string
+	Done              bool
+	Err               error
+	InputTokens       int64
+	OutputTokens      int64
+	CachedInputTokens int64
 	// ToolCalls is populated on the Done chunk when the model responded with
 	// tool/function calls instead of text content.
 	ToolCalls json.RawMessage

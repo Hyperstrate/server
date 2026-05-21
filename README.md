@@ -1,11 +1,11 @@
 # Hyperstrate Server
 
 <p align="center">
-  <strong>The open-source AI gateway runtime for routing, governing, and observing production inference traffic.</strong>
+  <strong>Self-hosted enterprise AI gateway with model routing, provider orchestration, virtual keys, budgets, guardrails, evals, MCP tools, observability, and SDK-compatible APIs.</strong>
 </p>
 
 <p align="center">
-  Run OpenAI-compatible, Anthropic-compatible, native, and async inference through configurable router pipelines with budgets, rate limits, safety checks, evaluations, webhooks, team access, and full request traces.
+  Route, govern, and observe production LLM traffic across hosted, self-hosted, OpenAI-compatible, Anthropic-compatible, native, streaming, async, and proxy inference flows.
 </p>
 
 <p align="center">
@@ -22,6 +22,8 @@
 ## What Is Hyperstrate Server?
 
 Hyperstrate Server is a self-hosted AI gateway for teams that need control over model routing, provider credentials, inference policy, spending limits, logs, prompts, evaluations, and multi-tenant access.
+
+Pair it with [Hyperstrate Client](https://github.com/Hyperstrate/client), the Vue control plane for visually configuring providers, routers, prompts, evals, MCP tools, teams, virtual keys, SSO groups, analytics, and observability.
 
 Use it when you want to:
 

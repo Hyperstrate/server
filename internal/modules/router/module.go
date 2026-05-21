@@ -240,12 +240,13 @@ func (a *aiServiceAdapter) InferModelStream(ctx context.Context, modelID string,
 		defer close(out)
 		for chunk := range upstream {
 			toSend := application.StreamChunk{
-				Delta:        chunk.Delta,
-				Done:         chunk.Done,
-				Err:          chunk.Err,
-				InputTokens:  chunk.InputTokens,
-				OutputTokens: chunk.OutputTokens,
-				ToolCalls:    chunk.ToolCalls,
+				Delta:             chunk.Delta,
+				Done:              chunk.Done,
+				Err:               chunk.Err,
+				InputTokens:       chunk.InputTokens,
+				OutputTokens:      chunk.OutputTokens,
+				CachedInputTokens: chunk.CachedInputTokens,
+				ToolCalls:         chunk.ToolCalls,
 			}
 			if chunk.Done && model != nil {
 				def, ok := aiDomain.FindModelDefinition(model.ModelDefinitionKey)

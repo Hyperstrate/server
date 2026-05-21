@@ -240,6 +240,75 @@ func TestFeature_ExactCache_missCallsInferencerForDifferentPrompts(t *testing.T)
 	}
 }
 
+func TestFeature_RequestCoalescing_waiterReportsNoBilledTokensOrCost(t *testing.T) {
+	p := newFeaturePipeline(nil, nil, nil, nil, nil, nil)
+	router, targets := singleTargetRouter()
+	features := []domain.RouterFeature{feat(domain.FeatureRequestCoalescing, map[string]any{"window_ms": 1000.0})}
+
+	started := make(chan struct{})
+	release := make(chan struct{})
+	var calls int32
+	inf := &stubInferencer{
+		inferFn: func(_ context.Context, _ string, _ map[string]string, _ map[string]any) (*ModelInferResult, error) {
+			if atomic.AddInt32(&calls, 1) == 1 {
+				close(started)
+			}
+			<-release
+			return &ModelInferResult{
+				Content:      "shared",
+				ModelDefKey:  "chatgpt/gpt-5.4",
+				Provider:     "openai",
+				InputTokens:  100,
+				OutputTokens: 50,
+				CostUSD:      0.42,
+			}, nil
+		},
+	}
+
+	type runResult struct {
+		result *RouteInferResult
+		err    error
+	}
+	results := make(chan runResult, 2)
+	run := func() {
+		result, err := syncRun(p, router, targets, features, nil, "same prompt", inf, false)
+		results <- runResult{result: result, err: err}
+	}
+
+	go run()
+	<-started
+	go run()
+	time.Sleep(20 * time.Millisecond)
+	close(release)
+
+	var got []*RouteInferResult
+	for range 2 {
+		r := <-results
+		if r.err != nil {
+			t.Fatalf("coalesced request failed: %v", r.err)
+		}
+		got = append(got, r.result)
+	}
+	if calls != 1 {
+		t.Fatalf("want one upstream call, got %d", calls)
+	}
+
+	var billed, free int
+	for _, r := range got {
+		switch {
+		case r.CostUSD == 0.42 && r.InputTokens == 100 && r.OutputTokens == 50:
+			billed++
+		case r.CostUSD == 0 && r.InputTokens == 0 && r.OutputTokens == 0:
+			free++
+		default:
+			t.Fatalf("unexpected coalesced accounting: in=%d out=%d cost=%f", r.InputTokens, r.OutputTokens, r.CostUSD)
+		}
+	}
+	if billed != 1 || free != 1 {
+		t.Fatalf("want one billed leader and one free waiter, got billed=%d free=%d", billed, free)
+	}
+}
+
 // ── Semantic cache ────────────────────────────────────────────────────────────
 
 func TestFeature_SemanticCache_hitReturnsCachedResult(t *testing.T) {

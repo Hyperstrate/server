@@ -19,6 +19,7 @@ type jobProcessor struct {
 	configRepo domain.ModelConfigurationRepository
 	jobRepo    domain.JobRepository
 	proxy      Proxy
+	inferBus   *InferenceEventBus
 }
 
 // NewJobProcessor constructs a JobProcessor that executes jobs synchronously.
@@ -27,18 +28,21 @@ func NewJobProcessor(
 	configRepo domain.ModelConfigurationRepository,
 	jobRepo domain.JobRepository,
 	proxy Proxy,
+	inferBus *InferenceEventBus,
 ) JobProcessor {
 	return &jobProcessor{
 		modelRepo:  modelRepo,
 		configRepo: configRepo,
 		jobRepo:    jobRepo,
 		proxy:      proxy,
+		inferBus:   inferBus,
 	}
 }
 
 // ProcessJob transitions a PENDING job to RUNNING, calls the upstream model,
 // and marks it COMPLETED or FAILED. Safe to call from a Lambda SQS trigger.
 func (p *jobProcessor) ProcessJob(ctx context.Context, jobID string) error {
+	start := time.Now()
 	job, err := p.jobRepo.FindByIDForWorker(ctx, jobID)
 	if err != nil {
 		return err
@@ -57,16 +61,19 @@ func (p *jobProcessor) ProcessJob(ctx context.Context, jobID string) error {
 
 	model, err := p.modelRepo.FindByID(ctx, job.OrgID, job.ModelID)
 	if err != nil {
+		p.emitJobInferenceLog(job, "", "", 0, 0, 0, 0, start, "error", err.Error())
 		return p.failJob(ctx, job, err)
 	}
 
 	def, ok := domain.FindModelDefinition(model.ModelDefinitionKey)
 	if !ok {
+		p.emitJobInferenceLog(job, model.ModelDefinitionKey, "", 0, 0, 0, 0, start, "error", domain.ErrModelDefinitionNotFound.Error())
 		return p.failJob(ctx, job, domain.ErrModelDefinitionNotFound)
 	}
 
 	cfg, err := p.configRepo.FindByModelID(ctx, job.OrgID, job.ModelID)
 	if err != nil {
+		p.emitJobInferenceLog(job, model.ModelDefinitionKey, string(def.Provider), 0, 0, 0, 0, start, "error", domain.ErrModelNotConfigured.Error())
 		return p.failJob(ctx, job, domain.ErrModelNotConfigured)
 	}
 
@@ -75,9 +82,11 @@ func (p *jobProcessor) ProcessJob(ctx context.Context, jobID string) error {
 		Options: job.Options,
 	})
 	if err != nil {
+		p.emitJobInferenceLog(job, model.ModelDefinitionKey, string(def.Provider), 0, 0, 0, 0, start, "error", err.Error())
 		return p.failJob(ctx, job, err)
 	}
 
+	costUSD := def.ComputeCostUSD(resp.InputTokens, resp.OutputTokens)
 	finished := time.Now()
 	job.Status = domain.JobStatusCompleted
 	job.Result = resp.Content
@@ -85,8 +94,40 @@ func (p *jobProcessor) ProcessJob(ctx context.Context, jobID string) error {
 	if err := p.jobRepo.Update(ctx, job); err != nil {
 		return err
 	}
+	p.emitJobInferenceLog(job, model.ModelDefinitionKey, string(def.Provider), resp.InputTokens, resp.OutputTokens, resp.CachedInputTokens, costUSD, start, "success", "")
 	fireWebhook(job)
 	return nil
+}
+
+func (p *jobProcessor) emitJobInferenceLog(
+	job *domain.Job,
+	modelDefKey string,
+	provider string,
+	inputTokens int64,
+	outputTokens int64,
+	cachedInputTokens int64,
+	costUSD float64,
+	start time.Time,
+	status string,
+	errorMessage string,
+) {
+	if p.inferBus == nil || job == nil {
+		return
+	}
+	p.inferBus.Emit(InferenceLoggedEvent{
+		OrgID:             job.OrgID,
+		ModelID:           job.ModelID,
+		ModelDefKey:       modelDefKey,
+		Provider:          provider,
+		InputTokens:       inputTokens,
+		OutputTokens:      outputTokens,
+		CachedInputTokens: cachedInputTokens,
+		CostUSD:           costUSD,
+		LatencyMs:         time.Since(start).Milliseconds(),
+		Status:            status,
+		ErrorMessage:      errorMessage,
+		Source:            "job",
+	})
 }
 
 func (p *jobProcessor) failJob(ctx context.Context, job *domain.Job, reason error) error {
