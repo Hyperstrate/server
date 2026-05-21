@@ -77,14 +77,16 @@ type ModelLookup interface {
 
 // ModelInferResult is the outcome of a single model call made by the router.
 type ModelInferResult struct {
-	Content           string
-	ModelDefKey       string
-	Provider          string
-	InputTokens       int64
-	OutputTokens      int64
-	CachedInputTokens int64
-	CostUSD           float64
-	ToolCalls         json.RawMessage
+	Content                 string
+	ModelDefKey             string
+	Provider                string
+	InputTokens             int64
+	OutputTokens            int64
+	CachedInputTokens       int64
+	CacheWriteInputTokens   int64
+	CacheWrite1hInputTokens int64
+	CostUSD                 float64
+	ToolCalls               json.RawMessage
 }
 
 // ModelInferencer is the interface the router uses to call an underlying AI model.
@@ -1021,7 +1023,7 @@ func (s *service) RouteInferStream(ctx context.Context, routerID string, input R
 		defer close(out)
 		var selectedModelID, selectedTargetID, modelDefKey, provider, abVariant string
 		var lastErr error
-		var inputTokens, outputTokens, cachedInputTokens int64
+		var inputTokens, outputTokens, cachedInputTokens, cacheWriteInputTokens, cacheWrite1hInputTokens int64
 		var costUSD float64
 		var cacheHit bool
 		var cacheHitType string
@@ -1044,6 +1046,8 @@ func (s *service) RouteInferStream(ctx context.Context, routerID string, input R
 				inputTokens = chunk.InputTokens
 				outputTokens = chunk.OutputTokens
 				cachedInputTokens = chunk.CachedInputTokens
+				cacheWriteInputTokens = chunk.CacheWriteInputTokens
+				cacheWrite1hInputTokens = chunk.CacheWrite1hInputTokens
 				modelDefKey = chunk.ModelDefKey
 				provider = chunk.Provider
 				costUSD = chunk.CostUSD
@@ -1077,6 +1081,9 @@ func (s *service) RouteInferStream(ctx context.Context, routerID string, input R
 				}
 				if cachedInputTokens > 0 {
 					detail += fmt.Sprintf(" · %d cached", cachedInputTokens)
+				}
+				if cacheWriteInputTokens+cacheWrite1hInputTokens > 0 {
+					detail += fmt.Sprintf(" · %d cache write", cacheWriteInputTokens+cacheWrite1hInputTokens)
 				}
 				if costUSD > 0 {
 					detail += fmt.Sprintf(" · $%.5f", costUSD)

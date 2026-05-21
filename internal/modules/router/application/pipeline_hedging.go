@@ -90,16 +90,18 @@ func (p *featurePipeline) runHedged(
 			if passesHedgeQualityCheck(res.r.Content, qualityCheck, minLength) {
 				cancel()
 				return &RouteInferResult{
-					Content:           res.r.Content,
-					SelectedModelID:   res.modelID,
-					SelectedTargetID:  res.targetID,
-					ModelDefKey:       res.r.ModelDefKey,
-					Provider:          res.r.Provider,
-					InputTokens:       res.r.InputTokens,
-					OutputTokens:      res.r.OutputTokens,
-					CachedInputTokens: res.r.CachedInputTokens,
-					CostUSD:           res.r.CostUSD,
-					ToolCalls:         res.r.ToolCalls,
+					Content:                 res.r.Content,
+					SelectedModelID:         res.modelID,
+					SelectedTargetID:        res.targetID,
+					ModelDefKey:             res.r.ModelDefKey,
+					Provider:                res.r.Provider,
+					InputTokens:             res.r.InputTokens,
+					OutputTokens:            res.r.OutputTokens,
+					CachedInputTokens:       res.r.CachedInputTokens,
+					CacheWriteInputTokens:   res.r.CacheWriteInputTokens,
+					CacheWrite1hInputTokens: res.r.CacheWrite1hInputTokens,
+					CostUSD:                 res.r.CostUSD,
+					ToolCalls:               res.r.ToolCalls,
 				}, nil
 			}
 		case <-raceCtx.Done():

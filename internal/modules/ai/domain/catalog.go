@@ -38,8 +38,11 @@ type ModelDefinition struct {
 	InputFields []InputFieldDef `json:"inputFields" validate:"required"`
 
 	// Pricing in USD per 1M tokens (0 = unknown/free).
-	InputPricePer1MTokens  float64 `json:"inputPricePer1MTokens"`
-	OutputPricePer1MTokens float64 `json:"outputPricePer1MTokens"`
+	InputPricePer1MTokens             float64 `json:"inputPricePer1MTokens"`
+	CachedInputPricePer1MTokens       float64 `json:"cachedInputPricePer1MTokens,omitempty"`
+	CacheWriteInputPricePer1MTokens   float64 `json:"cacheWriteInputPricePer1MTokens,omitempty"`
+	CacheWrite1hInputPricePer1MTokens float64 `json:"cacheWrite1hInputPricePer1MTokens,omitempty"`
+	OutputPricePer1MTokens            float64 `json:"outputPricePer1MTokens"`
 	// ContextWindowTokens is the maximum token count accepted by the model.
 	ContextWindowTokens int `json:"contextWindowTokens"`
 	// Capabilities is a set of feature flags (e.g. "vision", "reasoning", "function_calling").
@@ -51,6 +54,19 @@ type ModelDefinition struct {
 	// Only the fields defined here are rendered — e.g. OpenAI shows only "API Key",
 	// Kling shows "Access Key ID" + "Secret Access Key", Ollama shows nothing.
 	CredentialFields []CredentialFieldDef `json:"credentialFields"`
+}
+
+// TokenUsage is the normalized token breakdown used for billing estimates.
+// InputTokens is total input tokens across regular, cache-read, and cache-write
+// buckets. CachedInputTokens are provider-side cache reads. CacheWriteInputTokens
+// are default/5-minute cache writes, while CacheWrite1hInputTokens are Anthropic
+// one-hour cache writes when the provider reports them separately.
+type TokenUsage struct {
+	InputTokens             int64
+	CachedInputTokens       int64
+	CacheWriteInputTokens   int64
+	CacheWrite1hInputTokens int64
+	OutputTokens            int64
 }
 
 // Per-provider credential field sets — shared across all models from the same provider.
@@ -133,13 +149,408 @@ var mistralFields = []InputFieldDef{
 	{Key: "prompt", Label: "Prompt", Type: InputTypeText, Required: true},
 }
 
+const (
+	openAIChatCatalogPrefix      = "chatgpt/"
+	openAIEmbeddingCatalogPrefix = "openai/"
+	azureOpenAICatalogPrefix     = "azure/"
+	anthropicCatalogPrefix       = "anthropic/"
+	geminiCatalogPrefix          = "gemini/"
+	mistralCatalogPrefix         = "mistral/"
+	ollamaCatalogPrefix          = "ollama/"
+	vllmCatalogPrefix            = "vllm/"
+	localAICatalogPrefix         = "localai/"
+	klingCatalogPrefix           = "kling/"
+	groqCatalogPrefix            = "groq/"
+	cohereCatalogPrefix          = "cohere/"
+	bedrockCatalogPrefix         = "bedrock/"
+	customCatalogKey             = "custom"
+)
+
+const (
+	openAIModelGPT55                 = "gpt-5.5"
+	openAIModelGPT55Pro              = "gpt-5.5-pro"
+	openAIModelGPT54                 = "gpt-5.4"
+	openAIModelGPT54Mini             = "gpt-5.4-mini"
+	openAIModelGPT54Nano             = "gpt-5.4-nano"
+	openAIModelGPT54Pro              = "gpt-5.4-pro"
+	openAIModelGPT52                 = "gpt-5.2"
+	openAIModelGPT52Pro              = "gpt-5.2-pro"
+	openAIModelGPT51                 = "gpt-5.1"
+	openAIModelGPT5                  = "gpt-5"
+	openAIModelGPT5Mini              = "gpt-5-mini"
+	openAIModelGPT5Nano              = "gpt-5-nano"
+	openAIModelGPT5Pro               = "gpt-5-pro"
+	openAIModelGPT41                 = "gpt-4.1"
+	openAIModelGPT41Mini             = "gpt-4.1-mini"
+	openAIModelGPT41Nano             = "gpt-4.1-nano"
+	openAIModelGPT4o                 = "gpt-4o"
+	openAIModelGPT4oMini             = "gpt-4o-mini"
+	openAIModelGPT4o20240513         = "gpt-4o-2024-05-13"
+	openAIModelO4Mini                = "o4-mini"
+	openAIModelO3                    = "o3"
+	openAIModelO3Mini                = "o3-mini"
+	openAIModelO3Pro                 = "o3-pro"
+	openAIModelO1                    = "o1"
+	openAIModelO1Mini                = "o1-mini"
+	openAIModelO1Pro                 = "o1-pro"
+	openAIModelGPT4Turbo20240409     = "gpt-4-turbo-2024-04-09"
+	openAIModelGPT40125Preview       = "gpt-4-0125-preview"
+	openAIModelGPT41106Preview       = "gpt-4-1106-preview"
+	openAIModelGPT41106VisionPreview = "gpt-4-1106-vision-preview"
+	openAIModelGPT40613              = "gpt-4-0613"
+	openAIModelGPT40314              = "gpt-4-0314"
+	openAIModelGPT432K               = "gpt-4-32k"
+	openAIModelGPT35Turbo            = "gpt-3.5-turbo"
+	openAIModelGPT35Turbo0125        = "gpt-3.5-turbo-0125"
+	openAIModelGPT35Turbo1106        = "gpt-3.5-turbo-1106"
+	openAIModelGPT35Turbo0613        = "gpt-3.5-turbo-0613"
+	openAIModelGPT35Turbo0301        = "gpt-3.5-turbo-0301"
+	openAIModelGPT35TurboInstruct    = "gpt-3.5-turbo-instruct"
+	openAIModelGPT35Turbo16K0613     = "gpt-3.5-turbo-16k-0613"
+	openAIModelDavinci002            = "davinci-002"
+	openAIModelBabbage002            = "babbage-002"
+	openAIModelTextEmbedding3Small   = "text-embedding-3-small"
+	openAIModelTextEmbedding3Large   = "text-embedding-3-large"
+	openAIModelTextEmbeddingAda002   = "text-embedding-ada-002"
+)
+
+func openAIChatCatalogKey(modelID string) string {
+	return openAIChatCatalogPrefix + modelID
+}
+
+func openAIEmbeddingCatalogKey(modelID string) string {
+	return openAIEmbeddingCatalogPrefix + modelID
+}
+
+func azureOpenAICatalogKey(modelID string) string {
+	return azureOpenAICatalogPrefix + modelID
+}
+
+func anthropicCatalogKey(slug string) string { return anthropicCatalogPrefix + slug }
+func geminiCatalogKey(modelID string) string { return geminiCatalogPrefix + modelID }
+func mistralCatalogKey(slug string) string   { return mistralCatalogPrefix + slug }
+func ollamaCatalogKey(slug string) string    { return ollamaCatalogPrefix + slug }
+func vllmCatalogKey(slug string) string      { return vllmCatalogPrefix + slug }
+func localAICatalogKey(slug string) string   { return localAICatalogPrefix + slug }
+func klingCatalogKey(slug string) string     { return klingCatalogPrefix + slug }
+func groqCatalogKey(slug string) string      { return groqCatalogPrefix + slug }
+func cohereCatalogKey(modelID string) string { return cohereCatalogPrefix + modelID }
+func bedrockCatalogKey(slug string) string   { return bedrockCatalogPrefix + slug }
+
+var knownOpenAIChatModelIDs = map[string]struct{}{
+	openAIModelGPT55:                 {},
+	openAIModelGPT55Pro:              {},
+	openAIModelGPT54:                 {},
+	openAIModelGPT54Mini:             {},
+	openAIModelGPT54Nano:             {},
+	openAIModelGPT54Pro:              {},
+	openAIModelGPT52:                 {},
+	openAIModelGPT52Pro:              {},
+	openAIModelGPT51:                 {},
+	openAIModelGPT5:                  {},
+	openAIModelGPT5Mini:              {},
+	openAIModelGPT5Nano:              {},
+	openAIModelGPT5Pro:               {},
+	openAIModelGPT41:                 {},
+	openAIModelGPT41Mini:             {},
+	openAIModelGPT41Nano:             {},
+	openAIModelGPT4o:                 {},
+	openAIModelGPT4oMini:             {},
+	openAIModelGPT4o20240513:         {},
+	openAIModelO4Mini:                {},
+	openAIModelO3:                    {},
+	openAIModelO3Mini:                {},
+	openAIModelO3Pro:                 {},
+	openAIModelO1:                    {},
+	openAIModelO1Mini:                {},
+	openAIModelO1Pro:                 {},
+	openAIModelGPT4Turbo20240409:     {},
+	openAIModelGPT40125Preview:       {},
+	openAIModelGPT41106Preview:       {},
+	openAIModelGPT41106VisionPreview: {},
+	openAIModelGPT40613:              {},
+	openAIModelGPT40314:              {},
+	openAIModelGPT432K:               {},
+	openAIModelGPT35Turbo:            {},
+	openAIModelGPT35Turbo0125:        {},
+	openAIModelGPT35Turbo1106:        {},
+	openAIModelGPT35Turbo0613:        {},
+	openAIModelGPT35Turbo0301:        {},
+	openAIModelGPT35TurboInstruct:    {},
+	openAIModelGPT35Turbo16K0613:     {},
+	openAIModelDavinci002:            {},
+	openAIModelBabbage002:            {},
+}
+
+var knownOpenAIEmbeddingModelIDs = map[string]struct{}{
+	openAIModelTextEmbedding3Small: {},
+	openAIModelTextEmbedding3Large: {},
+	openAIModelTextEmbeddingAda002: {},
+}
+
+const (
+	anthropicModelClaudeOpus47   = "claude-opus-4-7"
+	anthropicModelClaudeOpus46   = "claude-opus-4-6"
+	anthropicModelClaudeOpus45   = "claude-opus-4-5"
+	anthropicModelClaudeOpus41   = "claude-opus-4-1"
+	anthropicModelClaudeOpus4    = "claude-opus-4-20250514"
+	anthropicModelClaudeSonnet46 = "claude-sonnet-4-6"
+	anthropicModelClaudeSonnet45 = "claude-sonnet-4-5"
+	anthropicModelClaudeSonnet4  = "claude-sonnet-4-20250514"
+	anthropicModelClaudeSonnet37 = "claude-sonnet-3-7-20250219"
+	anthropicModelClaudeHaiku45  = "claude-haiku-4-5-20251001"
+	anthropicModelClaudeHaiku35  = "claude-haiku-3-5-20241022"
+	anthropicModelClaudeHaiku3   = "claude-3-haiku-20240307"
+	anthropicModelClaudeOpus3    = "claude-3-opus-20240229"
+	anthropicSlugClaudeOpus4     = "claude-opus-4"
+	anthropicSlugClaudeSonnet4   = "claude-sonnet-4"
+	anthropicSlugClaudeSonnet37  = "claude-sonnet-3-7"
+	anthropicSlugClaudeHaiku45   = "claude-haiku-4-5"
+	anthropicSlugClaudeHaiku35   = "claude-haiku-3-5"
+	anthropicSlugClaudeHaiku3    = "claude-haiku-3"
+	anthropicSlugClaudeOpus3     = "claude-opus-3"
+)
+
+const (
+	geminiModel25Pro       = "gemini-2.5-pro"
+	geminiModel25Flash     = "gemini-2.5-flash"
+	geminiModel25FlashLite = "gemini-2.5-flash-lite"
+	geminiModel20Flash     = "gemini-2.0-flash"
+)
+
+const (
+	mistralModelLargeLatest      = "mistral-large-latest"
+	mistralModelMedium3          = "mistral-medium-3"
+	mistralModelSmallLatest      = "mistral-small-latest"
+	mistralModelSmall31Latest    = "mistral-small-3.1-latest"
+	mistralModelCodestralLatest  = "codestral-latest"
+	mistralModelPixtralLarge     = "pixtral-large-latest"
+	mistralModelMagistralMedium  = "magistral-medium-latest"
+	mistralModelMinistral8B      = "ministral-8b-latest"
+	mistralModelMinistral3B      = "ministral-3b-latest"
+	mistralModelOpenMistralNemo  = "open-mistral-nemo"
+	mistralModelOpenMixtral8x22B = "open-mixtral-8x22b"
+	mistralModelOpenMixtral8x7B  = "open-mixtral-8x7b"
+	mistralModelEmbed            = "mistral-embed"
+	mistralSlugLarge             = "mistral-large"
+	mistralSlugMedium3           = "mistral-medium-3"
+	mistralSlugSmall             = "mistral-small"
+	mistralSlugSmall31           = "mistral-small-3-1"
+	mistralSlugCodestral         = "codestral"
+	mistralSlugPixtralLarge      = "pixtral-large"
+	mistralSlugMagistralMedium   = "magistral-medium"
+	mistralSlugMinistral8B       = "ministral-8b"
+	mistralSlugMinistral3B       = "ministral-3b"
+	mistralSlugEmbed             = "mistral-embed"
+)
+
+const (
+	ollamaModelLlama3370B  = "llama3.3:70b"
+	ollamaModelMistralNemo = "mistral-nemo"
+	ollamaModelNomicEmbed  = "nomic-embed-text"
+	ollamaModelMxbaiEmbed  = "mxbai-embed-large"
+	ollamaSlugLlama3370B   = "llama-3.3-70b"
+	ollamaSlugMistralNemo  = "mistral-nemo"
+	ollamaSlugNomicEmbed   = "nomic-embed-text"
+	ollamaSlugMxbaiEmbed   = "mxbai-embed-large"
+)
+
+const (
+	vllmModelLlama318B       = "meta-llama/Meta-Llama-3.1-8B-Instruct"
+	vllmModelLlama3170B      = "meta-llama/Meta-Llama-3.1-70B-Instruct"
+	vllmModelMistral7B       = "mistralai/Mistral-7B-Instruct-v0.3"
+	vllmModelQwen2572B       = "Qwen/Qwen2.5-72B-Instruct"
+	vllmModelDeepSeekCoderV2 = "deepseek-ai/DeepSeek-Coder-V2-Lite-Instruct"
+	vllmSlugLlama318B        = "llama-3.1-8b-instruct"
+	vllmSlugLlama3170B       = "llama-3.1-70b-instruct"
+	vllmSlugMistral7B        = "mistral-7b-instruct"
+	vllmSlugQwen2572B        = "qwen2.5-72b-instruct"
+	vllmSlugDeepSeekCoderV2  = "deepseek-coder-v2-lite"
+)
+
+const (
+	localAIModelLlama318B    = "llama-3.1-8b-instruct"
+	localAIModelMistral7B    = "mistral-7b-instruct"
+	localAIModelCodeLlama13B = "codellama-13b-instruct"
+	localAIModelPhi3Medium   = "phi-3-medium-128k-instruct"
+	localAISlugLlama318B     = "llama-3.1-8b-instruct"
+	localAISlugMistral7B     = "mistral-7b"
+	localAISlugCodeLlama13B  = "codellama-13b"
+	localAISlugPhi3Medium    = "phi-3-medium"
+)
+
+const (
+	klingModelV1             = "kling-v1"
+	klingModelV2             = "kling-v2"
+	klingModelV21            = "kling-v2.1"
+	klingModelV3             = "kling-v3"
+	klingSlugV1              = "kling-v1"
+	klingSlugV1Image         = "kling-v1-image"
+	klingSlugV2              = "kling-v2"
+	klingSlugV21             = "kling-v2.1"
+	klingSlugV3MotionControl = "kling-v3-motion-control"
+)
+
+const (
+	groqModelLlama3370B    = "llama-3.3-70b-versatile"
+	groqModelLlama318B     = "llama-3.1-8b-instant"
+	groqModelMixtral8x7B   = "mixtral-8x7b-32768"
+	groqModelDeepSeekR170B = "deepseek-r1-distill-llama-70b"
+	groqModelLlama4Scout   = "meta-llama/llama-4-scout-17b-16e-instruct"
+	groqSlugLlama3370B     = "llama-3.3-70b"
+	groqSlugLlama318B      = "llama-3.1-8b"
+	groqSlugMixtral8x7B    = "mixtral-8x7b"
+	groqSlugDeepSeekR170B  = "deepseek-r1-70b"
+	groqSlugLlama4Scout    = "llama-4-scout"
+)
+
+const (
+	cohereModelCommandRPlus = "command-r-plus"
+	cohereModelCommandR     = "command-r"
+	cohereModelCommandR7B   = "command-r7b-12-2024"
+	cohereSlugCommandR7B    = "command-r7b"
+)
+
+const (
+	bedrockModelClaude35Sonnet = "anthropic.claude-3-5-sonnet-20241022-v2:0"
+	bedrockModelClaude35Haiku  = "anthropic.claude-3-5-haiku-20241022-v1:0"
+	bedrockModelClaude3Opus    = "anthropic.claude-3-opus-20240229-v1:0"
+	bedrockModelLlama3370B     = "us.meta.llama3-3-70b-instruct-v1:0"
+	bedrockModelNovaPro        = "amazon.nova-pro-v1:0"
+	bedrockModelNovaLite       = "amazon.nova-lite-v1:0"
+	bedrockSlugClaude35Sonnet  = "claude-3-5-sonnet"
+	bedrockSlugClaude35Haiku   = "claude-3-5-haiku"
+	bedrockSlugClaude3Opus     = "claude-3-opus"
+	bedrockSlugLlama3370B      = "llama-3-3-70b"
+	bedrockSlugNovaPro         = "nova-pro"
+	bedrockSlugNovaLite        = "nova-lite"
+)
+
+var knownCatalogModelIDsByProvider = map[Provider]map[string]struct{}{
+	ProviderOpenAi:      mergeStringSets(knownOpenAIChatModelIDs, knownOpenAIEmbeddingModelIDs),
+	ProviderAzureOpenAI: knownOpenAIChatModelIDs,
+	ProviderAnthropic: {
+		anthropicModelClaudeOpus47:   {},
+		anthropicModelClaudeOpus46:   {},
+		anthropicModelClaudeOpus45:   {},
+		anthropicModelClaudeOpus41:   {},
+		anthropicModelClaudeOpus4:    {},
+		anthropicModelClaudeSonnet46: {},
+		anthropicModelClaudeSonnet45: {},
+		anthropicModelClaudeSonnet4:  {},
+		anthropicModelClaudeSonnet37: {},
+		anthropicModelClaudeHaiku45:  {},
+		anthropicModelClaudeHaiku35:  {},
+		anthropicModelClaudeHaiku3:   {},
+		anthropicModelClaudeOpus3:    {},
+	},
+	ProviderGemini: {
+		geminiModel25Pro:       {},
+		geminiModel25Flash:     {},
+		geminiModel25FlashLite: {},
+		geminiModel20Flash:     {},
+	},
+	ProviderMistral: {
+		mistralModelLargeLatest:      {},
+		mistralModelMedium3:          {},
+		mistralModelSmallLatest:      {},
+		mistralModelSmall31Latest:    {},
+		mistralModelCodestralLatest:  {},
+		mistralModelPixtralLarge:     {},
+		mistralModelMagistralMedium:  {},
+		mistralModelMinistral8B:      {},
+		mistralModelMinistral3B:      {},
+		mistralModelOpenMistralNemo:  {},
+		mistralModelOpenMixtral8x22B: {},
+		mistralModelOpenMixtral8x7B:  {},
+		mistralModelEmbed:            {},
+	},
+	ProviderOllama: {
+		ollamaModelLlama3370B:  {},
+		ollamaModelMistralNemo: {},
+		ollamaModelNomicEmbed:  {},
+		ollamaModelMxbaiEmbed:  {},
+	},
+	ProviderVLLM: {
+		vllmModelLlama318B:       {},
+		vllmModelLlama3170B:      {},
+		vllmModelMistral7B:       {},
+		vllmModelQwen2572B:       {},
+		vllmModelDeepSeekCoderV2: {},
+	},
+	ProviderLocalAI: {
+		localAIModelLlama318B:    {},
+		localAIModelMistral7B:    {},
+		localAIModelCodeLlama13B: {},
+		localAIModelPhi3Medium:   {},
+	},
+	ProviderKling: {
+		klingModelV1:  {},
+		klingModelV2:  {},
+		klingModelV21: {},
+		klingModelV3:  {},
+	},
+	ProviderGroq: {
+		groqModelLlama3370B:    {},
+		groqModelLlama318B:     {},
+		groqModelMixtral8x7B:   {},
+		groqModelDeepSeekR170B: {},
+		groqModelLlama4Scout:   {},
+	},
+	ProviderCohere: {
+		cohereModelCommandRPlus: {},
+		cohereModelCommandR:     {},
+		cohereModelCommandR7B:   {},
+	},
+	ProviderBedrock: {
+		bedrockModelClaude35Sonnet: {},
+		bedrockModelClaude35Haiku:  {},
+		bedrockModelClaude3Opus:    {},
+		bedrockModelLlama3370B:     {},
+		bedrockModelNovaPro:        {},
+		bedrockModelNovaLite:       {},
+	},
+}
+
+func mergeStringSets(sets ...map[string]struct{}) map[string]struct{} {
+	out := map[string]struct{}{}
+	for _, set := range sets {
+		for key := range set {
+			out[key] = struct{}{}
+		}
+	}
+	return out
+}
+
+var openAICachedInputPricesPer1M = map[string]float64{
+	openAIModelGPT55:     0.50,
+	openAIModelGPT54:     0.25,
+	openAIModelGPT54Mini: 0.075,
+	openAIModelGPT54Nano: 0.02,
+	openAIModelGPT52:     0.175,
+	openAIModelGPT51:     0.125,
+	openAIModelGPT5:      0.125,
+	openAIModelGPT5Mini:  0.025,
+	openAIModelGPT5Nano:  0.005,
+	openAIModelGPT41:     0.50,
+	openAIModelGPT41Mini: 0.10,
+	openAIModelGPT41Nano: 0.025,
+	openAIModelGPT4o:     1.25,
+	openAIModelGPT4oMini: 0.075,
+	openAIModelO4Mini:    0.275,
+	openAIModelO3:        0.50,
+	openAIModelO3Mini:    0.55,
+	openAIModelO1:        7.50,
+	openAIModelO1Mini:    0.55,
+}
+
 // catalog is the authoritative registry of all supported model definitions.
 var catalog = map[string]ModelDefinition{
 
 	// ── OpenAI — GPT-5.5 family ─────────────────────────────────────────────────
 
-	"chatgpt/gpt-5.5": {
-		Key: "chatgpt/gpt-5.5", Provider: ProviderOpenAi, ModelID: "gpt-5.5",
+	openAIChatCatalogKey(openAIModelGPT55): {
+		Key: openAIChatCatalogKey(openAIModelGPT55), Provider: ProviderOpenAi, ModelID: openAIModelGPT55,
 		DisplayName:           "GPT-5.5",
 		Description:           "OpenAI's most capable model — long context with vision",
 		InputPricePer1MTokens: 5.00, OutputPricePer1MTokens: 30.00,
@@ -149,8 +560,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsOpenAI,
 		InputFields:         oaiFieldsVision,
 	},
-	"chatgpt/gpt-5.5-pro": {
-		Key: "chatgpt/gpt-5.5-pro", Provider: ProviderOpenAi, ModelID: "gpt-5.5-pro",
+	openAIChatCatalogKey(openAIModelGPT55Pro): {
+		Key: openAIChatCatalogKey(openAIModelGPT55Pro), Provider: ProviderOpenAi, ModelID: openAIModelGPT55Pro,
 		DisplayName:           "GPT-5.5 Pro",
 		Description:           "Most capable GPT-5.5 variant for the most demanding tasks",
 		InputPricePer1MTokens: 30.00, OutputPricePer1MTokens: 180.00,
@@ -163,8 +574,8 @@ var catalog = map[string]ModelDefinition{
 
 	// ── OpenAI — GPT-5.4 family ─────────────────────────────────────────────────
 
-	"chatgpt/gpt-5.4": {
-		Key: "chatgpt/gpt-5.4", Provider: ProviderOpenAi, ModelID: "gpt-5.4",
+	openAIChatCatalogKey(openAIModelGPT54): {
+		Key: openAIChatCatalogKey(openAIModelGPT54), Provider: ProviderOpenAi, ModelID: openAIModelGPT54,
 		DisplayName:           "GPT-5.4",
 		Description:           "Best intelligence at scale for agentic, coding, and professional workflows — 1M context with vision",
 		InputPricePer1MTokens: 2.50, OutputPricePer1MTokens: 15.00,
@@ -174,8 +585,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsOpenAI,
 		InputFields:         oaiFieldsVision,
 	},
-	"chatgpt/gpt-5.4-mini": {
-		Key: "chatgpt/gpt-5.4-mini", Provider: ProviderOpenAi, ModelID: "gpt-5.4-mini",
+	openAIChatCatalogKey(openAIModelGPT54Mini): {
+		Key: openAIChatCatalogKey(openAIModelGPT54Mini), Provider: ProviderOpenAi, ModelID: openAIModelGPT54Mini,
 		DisplayName:           "GPT-5.4 mini",
 		Description:           "Strongest mini model for coding, computer use, and subagents — 400K context with vision",
 		InputPricePer1MTokens: 0.75, OutputPricePer1MTokens: 4.50,
@@ -185,8 +596,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsOpenAI,
 		InputFields:         oaiFieldsVision,
 	},
-	"chatgpt/gpt-5.4-nano": {
-		Key: "chatgpt/gpt-5.4-nano", Provider: ProviderOpenAi, ModelID: "gpt-5.4-nano",
+	openAIChatCatalogKey(openAIModelGPT54Nano): {
+		Key: openAIChatCatalogKey(openAIModelGPT54Nano), Provider: ProviderOpenAi, ModelID: openAIModelGPT54Nano,
 		DisplayName:           "GPT-5.4 nano",
 		Description:           "Cheapest GPT-5.4-class model for simple high-volume tasks — 400K context with vision",
 		InputPricePer1MTokens: 0.20, OutputPricePer1MTokens: 1.25,
@@ -196,8 +607,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsOpenAI,
 		InputFields:         oaiFieldsVision,
 	},
-	"chatgpt/gpt-5.4-pro": {
-		Key: "chatgpt/gpt-5.4-pro", Provider: ProviderOpenAi, ModelID: "gpt-5.4-pro",
+	openAIChatCatalogKey(openAIModelGPT54Pro): {
+		Key: openAIChatCatalogKey(openAIModelGPT54Pro), Provider: ProviderOpenAi, ModelID: openAIModelGPT54Pro,
 		DisplayName:           "GPT-5.4 Pro",
 		Description:           "Highest-capability GPT-5.4 variant for advanced professional tasks",
 		InputPricePer1MTokens: 30.00, OutputPricePer1MTokens: 180.00,
@@ -210,8 +621,8 @@ var catalog = map[string]ModelDefinition{
 
 	// ── OpenAI — GPT-5.2 family ─────────────────────────────────────────────────
 
-	"chatgpt/gpt-5.2": {
-		Key: "chatgpt/gpt-5.2", Provider: ProviderOpenAi, ModelID: "gpt-5.2",
+	openAIChatCatalogKey(openAIModelGPT52): {
+		Key: openAIChatCatalogKey(openAIModelGPT52), Provider: ProviderOpenAi, ModelID: openAIModelGPT52,
 		DisplayName:           "GPT-5.2",
 		InputPricePer1MTokens: 1.75, OutputPricePer1MTokens: 14.00,
 		ContextWindowTokens: 128_000,
@@ -220,8 +631,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsOpenAI,
 		InputFields:         oaiFieldsVision,
 	},
-	"chatgpt/gpt-5.2-pro": {
-		Key: "chatgpt/gpt-5.2-pro", Provider: ProviderOpenAi, ModelID: "gpt-5.2-pro",
+	openAIChatCatalogKey(openAIModelGPT52Pro): {
+		Key: openAIChatCatalogKey(openAIModelGPT52Pro), Provider: ProviderOpenAi, ModelID: openAIModelGPT52Pro,
 		DisplayName:           "GPT-5.2 Pro",
 		InputPricePer1MTokens: 21.00, OutputPricePer1MTokens: 168.00,
 		ContextWindowTokens: 200_000,
@@ -233,8 +644,8 @@ var catalog = map[string]ModelDefinition{
 
 	// ── OpenAI — GPT-5 family ───────────────────────────────────────────────────
 
-	"chatgpt/gpt-5.1": {
-		Key: "chatgpt/gpt-5.1", Provider: ProviderOpenAi, ModelID: "gpt-5.1",
+	openAIChatCatalogKey(openAIModelGPT51): {
+		Key: openAIChatCatalogKey(openAIModelGPT51), Provider: ProviderOpenAi, ModelID: openAIModelGPT51,
 		DisplayName:           "GPT-5.1",
 		InputPricePer1MTokens: 1.25, OutputPricePer1MTokens: 10.00,
 		ContextWindowTokens: 128_000,
@@ -243,8 +654,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsOpenAI,
 		InputFields:         oaiFieldsVision,
 	},
-	"chatgpt/gpt-5": {
-		Key: "chatgpt/gpt-5", Provider: ProviderOpenAi, ModelID: "gpt-5",
+	openAIChatCatalogKey(openAIModelGPT5): {
+		Key: openAIChatCatalogKey(openAIModelGPT5), Provider: ProviderOpenAi, ModelID: openAIModelGPT5,
 		DisplayName:           "GPT-5",
 		InputPricePer1MTokens: 1.25, OutputPricePer1MTokens: 10.00,
 		ContextWindowTokens: 128_000,
@@ -253,8 +664,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsOpenAI,
 		InputFields:         oaiFieldsVision,
 	},
-	"chatgpt/gpt-5-mini": {
-		Key: "chatgpt/gpt-5-mini", Provider: ProviderOpenAi, ModelID: "gpt-5-mini",
+	openAIChatCatalogKey(openAIModelGPT5Mini): {
+		Key: openAIChatCatalogKey(openAIModelGPT5Mini), Provider: ProviderOpenAi, ModelID: openAIModelGPT5Mini,
 		DisplayName:           "GPT-5 mini",
 		InputPricePer1MTokens: 0.25, OutputPricePer1MTokens: 2.00,
 		ContextWindowTokens: 128_000,
@@ -263,8 +674,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsOpenAI,
 		InputFields:         oaiFields,
 	},
-	"chatgpt/gpt-5-nano": {
-		Key: "chatgpt/gpt-5-nano", Provider: ProviderOpenAi, ModelID: "gpt-5-nano",
+	openAIChatCatalogKey(openAIModelGPT5Nano): {
+		Key: openAIChatCatalogKey(openAIModelGPT5Nano), Provider: ProviderOpenAi, ModelID: openAIModelGPT5Nano,
 		DisplayName:           "GPT-5 nano",
 		InputPricePer1MTokens: 0.05, OutputPricePer1MTokens: 0.40,
 		ContextWindowTokens: 128_000,
@@ -273,8 +684,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsOpenAI,
 		InputFields:         oaiFields,
 	},
-	"chatgpt/gpt-5-pro": {
-		Key: "chatgpt/gpt-5-pro", Provider: ProviderOpenAi, ModelID: "gpt-5-pro",
+	openAIChatCatalogKey(openAIModelGPT5Pro): {
+		Key: openAIChatCatalogKey(openAIModelGPT5Pro), Provider: ProviderOpenAi, ModelID: openAIModelGPT5Pro,
 		DisplayName:           "GPT-5 Pro",
 		InputPricePer1MTokens: 15.00, OutputPricePer1MTokens: 120.00,
 		ContextWindowTokens: 200_000,
@@ -286,8 +697,8 @@ var catalog = map[string]ModelDefinition{
 
 	// ── OpenAI — GPT-4.1 family ─────────────────────────────────────────────────
 
-	"chatgpt/gpt-4.1": {
-		Key: "chatgpt/gpt-4.1", Provider: ProviderOpenAi, ModelID: "gpt-4.1",
+	openAIChatCatalogKey(openAIModelGPT41): {
+		Key: openAIChatCatalogKey(openAIModelGPT41), Provider: ProviderOpenAi, ModelID: openAIModelGPT41,
 		DisplayName:           "GPT-4.1",
 		Description:           "Strong instruction-following with vision support — 1M context",
 		InputPricePer1MTokens: 2.00, OutputPricePer1MTokens: 8.00,
@@ -297,8 +708,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsOpenAI,
 		InputFields:         oaiFieldsVision,
 	},
-	"chatgpt/gpt-4.1-mini": {
-		Key: "chatgpt/gpt-4.1-mini", Provider: ProviderOpenAi, ModelID: "gpt-4.1-mini",
+	openAIChatCatalogKey(openAIModelGPT41Mini): {
+		Key: openAIChatCatalogKey(openAIModelGPT41Mini), Provider: ProviderOpenAi, ModelID: openAIModelGPT41Mini,
 		DisplayName:           "GPT-4.1 mini",
 		Description:           "Compact and fast variant of GPT-4.1",
 		InputPricePer1MTokens: 0.40, OutputPricePer1MTokens: 1.60,
@@ -308,8 +719,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsOpenAI,
 		InputFields:         oaiFields,
 	},
-	"chatgpt/gpt-4.1-nano": {
-		Key: "chatgpt/gpt-4.1-nano", Provider: ProviderOpenAi, ModelID: "gpt-4.1-nano",
+	openAIChatCatalogKey(openAIModelGPT41Nano): {
+		Key: openAIChatCatalogKey(openAIModelGPT41Nano), Provider: ProviderOpenAi, ModelID: openAIModelGPT41Nano,
 		DisplayName:           "GPT-4.1 nano",
 		Description:           "Smallest and fastest GPT-4.1 variant for high-volume, low-latency tasks",
 		InputPricePer1MTokens: 0.10, OutputPricePer1MTokens: 0.40,
@@ -322,8 +733,8 @@ var catalog = map[string]ModelDefinition{
 
 	// ── OpenAI — GPT-4o family ──────────────────────────────────────────────────
 
-	"chatgpt/gpt-4o": {
-		Key: "chatgpt/gpt-4o", Provider: ProviderOpenAi, ModelID: "gpt-4o",
+	openAIChatCatalogKey(openAIModelGPT4o): {
+		Key: openAIChatCatalogKey(openAIModelGPT4o), Provider: ProviderOpenAi, ModelID: openAIModelGPT4o,
 		DisplayName:           "GPT-4o",
 		Description:           "OpenAI's flagship multimodal model — text and vision",
 		InputPricePer1MTokens: 2.50, OutputPricePer1MTokens: 10.00,
@@ -333,8 +744,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsOpenAI,
 		InputFields:         oaiFieldsVision,
 	},
-	"chatgpt/gpt-4o-mini": {
-		Key: "chatgpt/gpt-4o-mini", Provider: ProviderOpenAi, ModelID: "gpt-4o-mini",
+	openAIChatCatalogKey(openAIModelGPT4oMini): {
+		Key: openAIChatCatalogKey(openAIModelGPT4oMini), Provider: ProviderOpenAi, ModelID: openAIModelGPT4oMini,
 		DisplayName:           "GPT-4o mini",
 		Description:           "Fast and affordable model for lightweight tasks",
 		InputPricePer1MTokens: 0.15, OutputPricePer1MTokens: 0.60,
@@ -344,8 +755,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsOpenAI,
 		InputFields:         oaiFields,
 	},
-	"chatgpt/gpt-4o-2024-05-13": {
-		Key: "chatgpt/gpt-4o-2024-05-13", Provider: ProviderOpenAi, ModelID: "gpt-4o-2024-05-13",
+	openAIChatCatalogKey(openAIModelGPT4o20240513): {
+		Key: openAIChatCatalogKey(openAIModelGPT4o20240513), Provider: ProviderOpenAi, ModelID: openAIModelGPT4o20240513,
 		DisplayName:           "GPT-4o (2024-05-13)",
 		Description:           "Original GPT-4o snapshot — pinned version",
 		InputPricePer1MTokens: 5.00, OutputPricePer1MTokens: 15.00,
@@ -358,8 +769,8 @@ var catalog = map[string]ModelDefinition{
 
 	// ── OpenAI — Reasoning (o-series) ───────────────────────────────────────────
 
-	"chatgpt/o4-mini": {
-		Key: "chatgpt/o4-mini", Provider: ProviderOpenAi, ModelID: "o4-mini",
+	openAIChatCatalogKey(openAIModelO4Mini): {
+		Key: openAIChatCatalogKey(openAIModelO4Mini), Provider: ProviderOpenAi, ModelID: openAIModelO4Mini,
 		DisplayName:           "o4-mini",
 		Description:           "Fast, cost-efficient reasoning model with vision support",
 		InputPricePer1MTokens: 1.10, OutputPricePer1MTokens: 4.40,
@@ -369,8 +780,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsOpenAI,
 		InputFields:         oaiFieldsVision,
 	},
-	"chatgpt/o3": {
-		Key: "chatgpt/o3", Provider: ProviderOpenAi, ModelID: "o3",
+	openAIChatCatalogKey(openAIModelO3): {
+		Key: openAIChatCatalogKey(openAIModelO3), Provider: ProviderOpenAi, ModelID: openAIModelO3,
 		DisplayName:           "o3",
 		Description:           "OpenAI's most capable reasoning model",
 		InputPricePer1MTokens: 2.00, OutputPricePer1MTokens: 8.00,
@@ -380,8 +791,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsOpenAI,
 		InputFields:         oaiFieldsVision,
 	},
-	"chatgpt/o3-mini": {
-		Key: "chatgpt/o3-mini", Provider: ProviderOpenAi, ModelID: "o3-mini",
+	openAIChatCatalogKey(openAIModelO3Mini): {
+		Key: openAIChatCatalogKey(openAIModelO3Mini), Provider: ProviderOpenAi, ModelID: openAIModelO3Mini,
 		DisplayName:           "o3-mini",
 		Description:           "Cost-efficient reasoning model balancing speed and intelligence",
 		InputPricePer1MTokens: 1.10, OutputPricePer1MTokens: 4.40,
@@ -391,8 +802,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsOpenAI,
 		InputFields:         oaiFields,
 	},
-	"chatgpt/o3-pro": {
-		Key: "chatgpt/o3-pro", Provider: ProviderOpenAi, ModelID: "o3-pro",
+	openAIChatCatalogKey(openAIModelO3Pro): {
+		Key: openAIChatCatalogKey(openAIModelO3Pro), Provider: ProviderOpenAi, ModelID: openAIModelO3Pro,
 		DisplayName:           "o3 Pro",
 		Description:           "Maximum reasoning capability — highest accuracy on complex tasks",
 		InputPricePer1MTokens: 20.00, OutputPricePer1MTokens: 80.00,
@@ -402,8 +813,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsOpenAI,
 		InputFields:         oaiFieldsVision,
 	},
-	"chatgpt/o1": {
-		Key: "chatgpt/o1", Provider: ProviderOpenAi, ModelID: "o1",
+	openAIChatCatalogKey(openAIModelO1): {
+		Key: openAIChatCatalogKey(openAIModelO1), Provider: ProviderOpenAi, ModelID: openAIModelO1,
 		DisplayName:           "o1",
 		Description:           "OpenAI's first reasoning model — excels at complex math, science, and coding",
 		InputPricePer1MTokens: 15.00, OutputPricePer1MTokens: 60.00,
@@ -413,8 +824,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsOpenAI,
 		InputFields:         oaiFieldsVision,
 	},
-	"chatgpt/o1-mini": {
-		Key: "chatgpt/o1-mini", Provider: ProviderOpenAi, ModelID: "o1-mini",
+	openAIChatCatalogKey(openAIModelO1Mini): {
+		Key: openAIChatCatalogKey(openAIModelO1Mini), Provider: ProviderOpenAi, ModelID: openAIModelO1Mini,
 		DisplayName:           "o1-mini",
 		Description:           "Fast and affordable reasoning model optimised for STEM tasks",
 		InputPricePer1MTokens: 1.10, OutputPricePer1MTokens: 4.40,
@@ -424,8 +835,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsOpenAI,
 		InputFields:         oaiFields,
 	},
-	"chatgpt/o1-pro": {
-		Key: "chatgpt/o1-pro", Provider: ProviderOpenAi, ModelID: "o1-pro",
+	openAIChatCatalogKey(openAIModelO1Pro): {
+		Key: openAIChatCatalogKey(openAIModelO1Pro), Provider: ProviderOpenAi, ModelID: openAIModelO1Pro,
 		DisplayName:           "o1 Pro",
 		Description:           "Most powerful o1 variant — highest accuracy at premium cost",
 		InputPricePer1MTokens: 150.00, OutputPricePer1MTokens: 600.00,
@@ -438,8 +849,8 @@ var catalog = map[string]ModelDefinition{
 
 	// ── OpenAI — GPT-4 Turbo / legacy ───────────────────────────────────────────
 
-	"chatgpt/gpt-4-turbo-2024-04-09": {
-		Key: "chatgpt/gpt-4-turbo-2024-04-09", Provider: ProviderOpenAi, ModelID: "gpt-4-turbo-2024-04-09",
+	openAIChatCatalogKey(openAIModelGPT4Turbo20240409): {
+		Key: openAIChatCatalogKey(openAIModelGPT4Turbo20240409), Provider: ProviderOpenAi, ModelID: openAIModelGPT4Turbo20240409,
 		DisplayName:           "GPT-4 Turbo (2024-04-09)",
 		Description:           "GPT-4 Turbo with vision — 128K context",
 		InputPricePer1MTokens: 10.00, OutputPricePer1MTokens: 30.00,
@@ -449,8 +860,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsOpenAI,
 		InputFields:         oaiFieldsVision,
 	},
-	"chatgpt/gpt-4-0125-preview": {
-		Key: "chatgpt/gpt-4-0125-preview", Provider: ProviderOpenAi, ModelID: "gpt-4-0125-preview",
+	openAIChatCatalogKey(openAIModelGPT40125Preview): {
+		Key: openAIChatCatalogKey(openAIModelGPT40125Preview), Provider: ProviderOpenAi, ModelID: openAIModelGPT40125Preview,
 		DisplayName:           "GPT-4 Turbo Preview (0125)",
 		InputPricePer1MTokens: 10.00, OutputPricePer1MTokens: 30.00,
 		ContextWindowTokens: 128_000,
@@ -459,8 +870,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsOpenAI,
 		InputFields:         oaiFields,
 	},
-	"chatgpt/gpt-4-1106-preview": {
-		Key: "chatgpt/gpt-4-1106-preview", Provider: ProviderOpenAi, ModelID: "gpt-4-1106-preview",
+	openAIChatCatalogKey(openAIModelGPT41106Preview): {
+		Key: openAIChatCatalogKey(openAIModelGPT41106Preview), Provider: ProviderOpenAi, ModelID: openAIModelGPT41106Preview,
 		DisplayName:           "GPT-4 Turbo Preview (1106)",
 		InputPricePer1MTokens: 10.00, OutputPricePer1MTokens: 30.00,
 		ContextWindowTokens: 128_000,
@@ -469,8 +880,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsOpenAI,
 		InputFields:         oaiFields,
 	},
-	"chatgpt/gpt-4-1106-vision-preview": {
-		Key: "chatgpt/gpt-4-1106-vision-preview", Provider: ProviderOpenAi, ModelID: "gpt-4-1106-vision-preview",
+	openAIChatCatalogKey(openAIModelGPT41106VisionPreview): {
+		Key: openAIChatCatalogKey(openAIModelGPT41106VisionPreview), Provider: ProviderOpenAi, ModelID: openAIModelGPT41106VisionPreview,
 		DisplayName:           "GPT-4 Turbo Vision Preview (1106)",
 		InputPricePer1MTokens: 10.00, OutputPricePer1MTokens: 30.00,
 		ContextWindowTokens: 128_000,
@@ -479,8 +890,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsOpenAI,
 		InputFields:         oaiFieldsVision,
 	},
-	"chatgpt/gpt-4-0613": {
-		Key: "chatgpt/gpt-4-0613", Provider: ProviderOpenAi, ModelID: "gpt-4-0613",
+	openAIChatCatalogKey(openAIModelGPT40613): {
+		Key: openAIChatCatalogKey(openAIModelGPT40613), Provider: ProviderOpenAi, ModelID: openAIModelGPT40613,
 		DisplayName:           "GPT-4 (0613)",
 		InputPricePer1MTokens: 30.00, OutputPricePer1MTokens: 60.00,
 		ContextWindowTokens: 8_192,
@@ -489,8 +900,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsOpenAI,
 		InputFields:         oaiFields,
 	},
-	"chatgpt/gpt-4-0314": {
-		Key: "chatgpt/gpt-4-0314", Provider: ProviderOpenAi, ModelID: "gpt-4-0314",
+	openAIChatCatalogKey(openAIModelGPT40314): {
+		Key: openAIChatCatalogKey(openAIModelGPT40314), Provider: ProviderOpenAi, ModelID: openAIModelGPT40314,
 		DisplayName:           "GPT-4 (0314)",
 		InputPricePer1MTokens: 30.00, OutputPricePer1MTokens: 60.00,
 		ContextWindowTokens: 8_192,
@@ -498,8 +909,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsOpenAI,
 		InputFields:         oaiFields,
 	},
-	"chatgpt/gpt-4-32k": {
-		Key: "chatgpt/gpt-4-32k", Provider: ProviderOpenAi, ModelID: "gpt-4-32k",
+	openAIChatCatalogKey(openAIModelGPT432K): {
+		Key: openAIChatCatalogKey(openAIModelGPT432K), Provider: ProviderOpenAi, ModelID: openAIModelGPT432K,
 		DisplayName:           "GPT-4 32K",
 		InputPricePer1MTokens: 60.00, OutputPricePer1MTokens: 120.00,
 		ContextWindowTokens: 32_768,
@@ -510,8 +921,8 @@ var catalog = map[string]ModelDefinition{
 
 	// ── OpenAI — GPT-3.5 / legacy ───────────────────────────────────────────────
 
-	"chatgpt/gpt-3.5-turbo": {
-		Key: "chatgpt/gpt-3.5-turbo", Provider: ProviderOpenAi, ModelID: "gpt-3.5-turbo",
+	openAIChatCatalogKey(openAIModelGPT35Turbo): {
+		Key: openAIChatCatalogKey(openAIModelGPT35Turbo), Provider: ProviderOpenAi, ModelID: openAIModelGPT35Turbo,
 		DisplayName:           "GPT-3.5 Turbo",
 		InputPricePer1MTokens: 0.50, OutputPricePer1MTokens: 1.50,
 		ContextWindowTokens: 16_385,
@@ -519,8 +930,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsOpenAI,
 		InputFields:         oaiFields,
 	},
-	"chatgpt/gpt-3.5-turbo-0125": {
-		Key: "chatgpt/gpt-3.5-turbo-0125", Provider: ProviderOpenAi, ModelID: "gpt-3.5-turbo-0125",
+	openAIChatCatalogKey(openAIModelGPT35Turbo0125): {
+		Key: openAIChatCatalogKey(openAIModelGPT35Turbo0125), Provider: ProviderOpenAi, ModelID: openAIModelGPT35Turbo0125,
 		DisplayName:           "GPT-3.5 Turbo (0125)",
 		InputPricePer1MTokens: 0.50, OutputPricePer1MTokens: 1.50,
 		ContextWindowTokens: 16_385,
@@ -528,8 +939,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsOpenAI,
 		InputFields:         oaiFields,
 	},
-	"chatgpt/gpt-3.5-turbo-1106": {
-		Key: "chatgpt/gpt-3.5-turbo-1106", Provider: ProviderOpenAi, ModelID: "gpt-3.5-turbo-1106",
+	openAIChatCatalogKey(openAIModelGPT35Turbo1106): {
+		Key: openAIChatCatalogKey(openAIModelGPT35Turbo1106), Provider: ProviderOpenAi, ModelID: openAIModelGPT35Turbo1106,
 		DisplayName:           "GPT-3.5 Turbo (1106)",
 		InputPricePer1MTokens: 1.00, OutputPricePer1MTokens: 2.00,
 		ContextWindowTokens: 16_385,
@@ -537,8 +948,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsOpenAI,
 		InputFields:         oaiFields,
 	},
-	"chatgpt/gpt-3.5-turbo-0613": {
-		Key: "chatgpt/gpt-3.5-turbo-0613", Provider: ProviderOpenAi, ModelID: "gpt-3.5-turbo-0613",
+	openAIChatCatalogKey(openAIModelGPT35Turbo0613): {
+		Key: openAIChatCatalogKey(openAIModelGPT35Turbo0613), Provider: ProviderOpenAi, ModelID: openAIModelGPT35Turbo0613,
 		DisplayName:           "GPT-3.5 Turbo (0613)",
 		InputPricePer1MTokens: 1.50, OutputPricePer1MTokens: 2.00,
 		ContextWindowTokens: 4_096,
@@ -546,8 +957,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsOpenAI,
 		InputFields:         oaiFields,
 	},
-	"chatgpt/gpt-3.5-turbo-0301": {
-		Key: "chatgpt/gpt-3.5-turbo-0301", Provider: ProviderOpenAi, ModelID: "gpt-3.5-turbo-0301",
+	openAIChatCatalogKey(openAIModelGPT35Turbo0301): {
+		Key: openAIChatCatalogKey(openAIModelGPT35Turbo0301), Provider: ProviderOpenAi, ModelID: openAIModelGPT35Turbo0301,
 		DisplayName:           "GPT-3.5 Turbo (0301)",
 		InputPricePer1MTokens: 1.50, OutputPricePer1MTokens: 2.00,
 		ContextWindowTokens: 4_096,
@@ -555,8 +966,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsOpenAI,
 		InputFields:         oaiFields,
 	},
-	"chatgpt/gpt-3.5-turbo-instruct": {
-		Key: "chatgpt/gpt-3.5-turbo-instruct", Provider: ProviderOpenAi, ModelID: "gpt-3.5-turbo-instruct",
+	openAIChatCatalogKey(openAIModelGPT35TurboInstruct): {
+		Key: openAIChatCatalogKey(openAIModelGPT35TurboInstruct), Provider: ProviderOpenAi, ModelID: openAIModelGPT35TurboInstruct,
 		DisplayName:           "GPT-3.5 Turbo Instruct",
 		InputPricePer1MTokens: 1.50, OutputPricePer1MTokens: 2.00,
 		ContextWindowTokens: 4_096,
@@ -564,8 +975,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsOpenAI,
 		InputFields:         oaiFields,
 	},
-	"chatgpt/gpt-3.5-turbo-16k-0613": {
-		Key: "chatgpt/gpt-3.5-turbo-16k-0613", Provider: ProviderOpenAi, ModelID: "gpt-3.5-turbo-16k-0613",
+	openAIChatCatalogKey(openAIModelGPT35Turbo16K0613): {
+		Key: openAIChatCatalogKey(openAIModelGPT35Turbo16K0613), Provider: ProviderOpenAi, ModelID: openAIModelGPT35Turbo16K0613,
 		DisplayName:           "GPT-3.5 Turbo 16K (0613)",
 		InputPricePer1MTokens: 3.00, OutputPricePer1MTokens: 4.00,
 		ContextWindowTokens: 16_385,
@@ -573,8 +984,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsOpenAI,
 		InputFields:         oaiFields,
 	},
-	"chatgpt/davinci-002": {
-		Key: "chatgpt/davinci-002", Provider: ProviderOpenAi, ModelID: "davinci-002",
+	openAIChatCatalogKey(openAIModelDavinci002): {
+		Key: openAIChatCatalogKey(openAIModelDavinci002), Provider: ProviderOpenAi, ModelID: openAIModelDavinci002,
 		DisplayName:           "davinci-002",
 		InputPricePer1MTokens: 2.00, OutputPricePer1MTokens: 2.00,
 		ContextWindowTokens: 16_384,
@@ -582,8 +993,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsOpenAI,
 		InputFields:         oaiFields,
 	},
-	"chatgpt/babbage-002": {
-		Key: "chatgpt/babbage-002", Provider: ProviderOpenAi, ModelID: "babbage-002",
+	openAIChatCatalogKey(openAIModelBabbage002): {
+		Key: openAIChatCatalogKey(openAIModelBabbage002), Provider: ProviderOpenAi, ModelID: openAIModelBabbage002,
 		DisplayName:           "babbage-002",
 		InputPricePer1MTokens: 0.40, OutputPricePer1MTokens: 0.40,
 		ContextWindowTokens: 16_384,
@@ -594,8 +1005,8 @@ var catalog = map[string]ModelDefinition{
 
 	// ── Anthropic — Claude Opus 4.x ─────────────────────────────────────────────
 
-	"anthropic/claude-opus-4-7": {
-		Key: "anthropic/claude-opus-4-7", Provider: ProviderAnthropic, ModelID: "claude-opus-4-7",
+	anthropicCatalogKey(anthropicModelClaudeOpus47): {
+		Key: anthropicCatalogKey(anthropicModelClaudeOpus47), Provider: ProviderAnthropic, ModelID: anthropicModelClaudeOpus47,
 		DisplayName:           "Claude Opus 4.7",
 		Description:           "Anthropic's most capable model — best for complex reasoning and agentic coding",
 		InputPricePer1MTokens: 5.00, OutputPricePer1MTokens: 25.00,
@@ -605,8 +1016,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsAnthropic,
 		InputFields:         anthropicFields,
 	},
-	"anthropic/claude-opus-4-6": {
-		Key: "anthropic/claude-opus-4-6", Provider: ProviderAnthropic, ModelID: "claude-opus-4-6",
+	anthropicCatalogKey(anthropicModelClaudeOpus46): {
+		Key: anthropicCatalogKey(anthropicModelClaudeOpus46), Provider: ProviderAnthropic, ModelID: anthropicModelClaudeOpus46,
 		DisplayName:           "Claude Opus 4.6",
 		InputPricePer1MTokens: 5.00, OutputPricePer1MTokens: 25.00,
 		ContextWindowTokens: 200_000,
@@ -615,8 +1026,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsAnthropic,
 		InputFields:         anthropicFields,
 	},
-	"anthropic/claude-opus-4-5": {
-		Key: "anthropic/claude-opus-4-5", Provider: ProviderAnthropic, ModelID: "claude-opus-4-5",
+	anthropicCatalogKey(anthropicModelClaudeOpus45): {
+		Key: anthropicCatalogKey(anthropicModelClaudeOpus45), Provider: ProviderAnthropic, ModelID: anthropicModelClaudeOpus45,
 		DisplayName:           "Claude Opus 4.5",
 		InputPricePer1MTokens: 5.00, OutputPricePer1MTokens: 25.00,
 		ContextWindowTokens: 200_000,
@@ -625,8 +1036,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsAnthropic,
 		InputFields:         anthropicFields,
 	},
-	"anthropic/claude-opus-4-1": {
-		Key: "anthropic/claude-opus-4-1", Provider: ProviderAnthropic, ModelID: "claude-opus-4-1",
+	anthropicCatalogKey(anthropicModelClaudeOpus41): {
+		Key: anthropicCatalogKey(anthropicModelClaudeOpus41), Provider: ProviderAnthropic, ModelID: anthropicModelClaudeOpus41,
 		DisplayName:           "Claude Opus 4.1",
 		InputPricePer1MTokens: 15.00, OutputPricePer1MTokens: 75.00,
 		ContextWindowTokens: 200_000,
@@ -635,8 +1046,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsAnthropic,
 		InputFields:         anthropicFields,
 	},
-	"anthropic/claude-opus-4": {
-		Key: "anthropic/claude-opus-4", Provider: ProviderAnthropic, ModelID: "claude-opus-4-20250514",
+	anthropicCatalogKey(anthropicSlugClaudeOpus4): {
+		Key: anthropicCatalogKey(anthropicSlugClaudeOpus4), Provider: ProviderAnthropic, ModelID: anthropicModelClaudeOpus4,
 		DisplayName:           "Claude Opus 4",
 		InputPricePer1MTokens: 15.00, OutputPricePer1MTokens: 75.00,
 		ContextWindowTokens: 200_000,
@@ -648,8 +1059,8 @@ var catalog = map[string]ModelDefinition{
 
 	// ── Anthropic — Claude Sonnet 4.x ───────────────────────────────────────────
 
-	"anthropic/claude-sonnet-4-6": {
-		Key: "anthropic/claude-sonnet-4-6", Provider: ProviderAnthropic, ModelID: "claude-sonnet-4-6",
+	anthropicCatalogKey(anthropicModelClaudeSonnet46): {
+		Key: anthropicCatalogKey(anthropicModelClaudeSonnet46), Provider: ProviderAnthropic, ModelID: anthropicModelClaudeSonnet46,
 		DisplayName:           "Claude Sonnet 4.6",
 		Description:           "Best combination of speed and intelligence — extended thinking, 1M context",
 		InputPricePer1MTokens: 3.00, OutputPricePer1MTokens: 15.00,
@@ -659,8 +1070,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsAnthropic,
 		InputFields:         anthropicFields,
 	},
-	"anthropic/claude-sonnet-4-5": {
-		Key: "anthropic/claude-sonnet-4-5", Provider: ProviderAnthropic, ModelID: "claude-sonnet-4-5",
+	anthropicCatalogKey(anthropicModelClaudeSonnet45): {
+		Key: anthropicCatalogKey(anthropicModelClaudeSonnet45), Provider: ProviderAnthropic, ModelID: anthropicModelClaudeSonnet45,
 		DisplayName:           "Claude Sonnet 4.5",
 		InputPricePer1MTokens: 3.00, OutputPricePer1MTokens: 15.00,
 		ContextWindowTokens: 200_000,
@@ -669,8 +1080,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsAnthropic,
 		InputFields:         anthropicFields,
 	},
-	"anthropic/claude-sonnet-4": {
-		Key: "anthropic/claude-sonnet-4", Provider: ProviderAnthropic, ModelID: "claude-sonnet-4-20250514",
+	anthropicCatalogKey(anthropicSlugClaudeSonnet4): {
+		Key: anthropicCatalogKey(anthropicSlugClaudeSonnet4), Provider: ProviderAnthropic, ModelID: anthropicModelClaudeSonnet4,
 		DisplayName:           "Claude Sonnet 4",
 		InputPricePer1MTokens: 3.00, OutputPricePer1MTokens: 15.00,
 		ContextWindowTokens: 200_000,
@@ -679,8 +1090,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsAnthropic,
 		InputFields:         anthropicFields,
 	},
-	"anthropic/claude-sonnet-3-7": {
-		Key: "anthropic/claude-sonnet-3-7", Provider: ProviderAnthropic, ModelID: "claude-sonnet-3-7-20250219",
+	anthropicCatalogKey(anthropicSlugClaudeSonnet37): {
+		Key: anthropicCatalogKey(anthropicSlugClaudeSonnet37), Provider: ProviderAnthropic, ModelID: anthropicModelClaudeSonnet37,
 		DisplayName:           "Claude Sonnet 3.7 (deprecated)",
 		InputPricePer1MTokens: 3.00, OutputPricePer1MTokens: 15.00,
 		ContextWindowTokens: 200_000,
@@ -692,8 +1103,8 @@ var catalog = map[string]ModelDefinition{
 
 	// ── Anthropic — Claude Haiku 4.x / 3.x ─────────────────────────────────────
 
-	"anthropic/claude-haiku-4-5": {
-		Key: "anthropic/claude-haiku-4-5", Provider: ProviderAnthropic, ModelID: "claude-haiku-4-5-20251001",
+	anthropicCatalogKey(anthropicSlugClaudeHaiku45): {
+		Key: anthropicCatalogKey(anthropicSlugClaudeHaiku45), Provider: ProviderAnthropic, ModelID: anthropicModelClaudeHaiku45,
 		DisplayName:           "Claude Haiku 4.5",
 		Description:           "Fastest Claude model with near-frontier intelligence for lightweight tasks",
 		InputPricePer1MTokens: 1.00, OutputPricePer1MTokens: 5.00,
@@ -703,8 +1114,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsAnthropic,
 		InputFields:         anthropicFields,
 	},
-	"anthropic/claude-haiku-3-5": {
-		Key: "anthropic/claude-haiku-3-5", Provider: ProviderAnthropic, ModelID: "claude-haiku-3-5-20241022",
+	anthropicCatalogKey(anthropicSlugClaudeHaiku35): {
+		Key: anthropicCatalogKey(anthropicSlugClaudeHaiku35), Provider: ProviderAnthropic, ModelID: anthropicModelClaudeHaiku35,
 		DisplayName:           "Claude Haiku 3.5",
 		InputPricePer1MTokens: 0.80, OutputPricePer1MTokens: 4.00,
 		ContextWindowTokens: 200_000,
@@ -713,8 +1124,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsAnthropic,
 		InputFields:         anthropicFields,
 	},
-	"anthropic/claude-haiku-3": {
-		Key: "anthropic/claude-haiku-3", Provider: ProviderAnthropic, ModelID: "claude-3-haiku-20240307",
+	anthropicCatalogKey(anthropicSlugClaudeHaiku3): {
+		Key: anthropicCatalogKey(anthropicSlugClaudeHaiku3), Provider: ProviderAnthropic, ModelID: anthropicModelClaudeHaiku3,
 		DisplayName:           "Claude Haiku 3",
 		InputPricePer1MTokens: 0.25, OutputPricePer1MTokens: 1.25,
 		ContextWindowTokens: 200_000,
@@ -726,8 +1137,8 @@ var catalog = map[string]ModelDefinition{
 
 	// ── Anthropic — Claude Opus 3 (deprecated) ──────────────────────────────────
 
-	"anthropic/claude-opus-3": {
-		Key: "anthropic/claude-opus-3", Provider: ProviderAnthropic, ModelID: "claude-3-opus-20240229",
+	anthropicCatalogKey(anthropicSlugClaudeOpus3): {
+		Key: anthropicCatalogKey(anthropicSlugClaudeOpus3), Provider: ProviderAnthropic, ModelID: anthropicModelClaudeOpus3,
 		DisplayName:           "Claude Opus 3 (deprecated)",
 		InputPricePer1MTokens: 15.00, OutputPricePer1MTokens: 75.00,
 		ContextWindowTokens: 200_000,
@@ -739,8 +1150,8 @@ var catalog = map[string]ModelDefinition{
 
 	// ── Gemini ──────────────────────────────────────────────────────────────────
 
-	"gemini/gemini-2.5-pro": {
-		Key: "gemini/gemini-2.5-pro", Provider: ProviderGemini, ModelID: "gemini-2.5-pro",
+	geminiCatalogKey(geminiModel25Pro): {
+		Key: geminiCatalogKey(geminiModel25Pro), Provider: ProviderGemini, ModelID: geminiModel25Pro,
 		DisplayName:           "Gemini 2.5 Pro",
 		Description:           "Google's most capable Gemini model with deep reasoning — 1M context",
 		InputPricePer1MTokens: 1.25, OutputPricePer1MTokens: 10.00,
@@ -750,8 +1161,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsGemini,
 		InputFields:         geminiFields,
 	},
-	"gemini/gemini-2.5-flash": {
-		Key: "gemini/gemini-2.5-flash", Provider: ProviderGemini, ModelID: "gemini-2.5-flash",
+	geminiCatalogKey(geminiModel25Flash): {
+		Key: geminiCatalogKey(geminiModel25Flash), Provider: ProviderGemini, ModelID: geminiModel25Flash,
 		DisplayName:           "Gemini 2.5 Flash",
 		Description:           "Google's fast and affordable reasoning model — 1M context with vision",
 		InputPricePer1MTokens: 0.30, OutputPricePer1MTokens: 2.50,
@@ -761,8 +1172,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsGemini,
 		InputFields:         geminiFields,
 	},
-	"gemini/gemini-2.5-flash-lite": {
-		Key: "gemini/gemini-2.5-flash-lite", Provider: ProviderGemini, ModelID: "gemini-2.5-flash-lite",
+	geminiCatalogKey(geminiModel25FlashLite): {
+		Key: geminiCatalogKey(geminiModel25FlashLite), Provider: ProviderGemini, ModelID: geminiModel25FlashLite,
 		DisplayName:           "Gemini 2.5 Flash-Lite",
 		Description:           "Most cost-efficient Gemini model — optimised for high-volume tasks",
 		InputPricePer1MTokens: 0.10, OutputPricePer1MTokens: 0.40,
@@ -772,8 +1183,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsGemini,
 		InputFields:         geminiFields,
 	},
-	"gemini/gemini-2.0-flash": {
-		Key: "gemini/gemini-2.0-flash", Provider: ProviderGemini, ModelID: "gemini-2.0-flash",
+	geminiCatalogKey(geminiModel20Flash): {
+		Key: geminiCatalogKey(geminiModel20Flash), Provider: ProviderGemini, ModelID: geminiModel20Flash,
 		DisplayName:           "Gemini 2.0 Flash",
 		Description:           "Google's fast Gemini model — multimodal, low latency, 1M context",
 		InputPricePer1MTokens: 0.10, OutputPricePer1MTokens: 0.40,
@@ -786,8 +1197,8 @@ var catalog = map[string]ModelDefinition{
 
 	// ── Mistral AI ──────────────────────────────────────────────────────────────
 
-	"mistral/mistral-large": {
-		Key: "mistral/mistral-large", Provider: ProviderMistral, ModelID: "mistral-large-latest",
+	mistralCatalogKey(mistralSlugLarge): {
+		Key: mistralCatalogKey(mistralSlugLarge), Provider: ProviderMistral, ModelID: mistralModelLargeLatest,
 		DisplayName:           "Mistral Large",
 		Description:           "Mistral's flagship model for complex reasoning and tasks",
 		InputPricePer1MTokens: 0.50, OutputPricePer1MTokens: 1.50,
@@ -797,8 +1208,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsMistral,
 		InputFields:         mistralFields,
 	},
-	"mistral/mistral-medium-3": {
-		Key: "mistral/mistral-medium-3", Provider: ProviderMistral, ModelID: "mistral-medium-3",
+	mistralCatalogKey(mistralSlugMedium3): {
+		Key: mistralCatalogKey(mistralSlugMedium3), Provider: ProviderMistral, ModelID: mistralModelMedium3,
 		DisplayName:           "Mistral Medium 3",
 		Description:           "Strong mid-tier model balancing capability and cost",
 		InputPricePer1MTokens: 0.40, OutputPricePer1MTokens: 2.00,
@@ -808,8 +1219,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsMistral,
 		InputFields:         mistralFields,
 	},
-	"mistral/mistral-small": {
-		Key: "mistral/mistral-small", Provider: ProviderMistral, ModelID: "mistral-small-latest",
+	mistralCatalogKey(mistralSlugSmall): {
+		Key: mistralCatalogKey(mistralSlugSmall), Provider: ProviderMistral, ModelID: mistralModelSmallLatest,
 		DisplayName:           "Mistral Small",
 		Description:           "Fast and affordable Mistral model for everyday tasks",
 		InputPricePer1MTokens: 0.15, OutputPricePer1MTokens: 0.60,
@@ -819,8 +1230,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsMistral,
 		InputFields:         mistralFields,
 	},
-	"mistral/mistral-small-3-1": {
-		Key: "mistral/mistral-small-3-1", Provider: ProviderMistral, ModelID: "mistral-small-3.1-latest",
+	mistralCatalogKey(mistralSlugSmall31): {
+		Key: mistralCatalogKey(mistralSlugSmall31), Provider: ProviderMistral, ModelID: mistralModelSmall31Latest,
 		DisplayName:           "Mistral Small 3.1",
 		Description:           "Upgraded small model with improved instruction-following",
 		InputPricePer1MTokens: 0.10, OutputPricePer1MTokens: 0.30,
@@ -830,8 +1241,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsMistral,
 		InputFields:         mistralFields,
 	},
-	"mistral/codestral": {
-		Key: "mistral/codestral", Provider: ProviderMistral, ModelID: "codestral-latest",
+	mistralCatalogKey(mistralSlugCodestral): {
+		Key: mistralCatalogKey(mistralSlugCodestral), Provider: ProviderMistral, ModelID: mistralModelCodestralLatest,
 		DisplayName:           "Codestral",
 		Description:           "Mistral's code-specialised model — fill-in-the-middle and completion",
 		InputPricePer1MTokens: 0.30, OutputPricePer1MTokens: 0.90,
@@ -841,8 +1252,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsMistral,
 		InputFields:         mistralFields,
 	},
-	"mistral/pixtral-large": {
-		Key: "mistral/pixtral-large", Provider: ProviderMistral, ModelID: "pixtral-large-latest",
+	mistralCatalogKey(mistralSlugPixtralLarge): {
+		Key: mistralCatalogKey(mistralSlugPixtralLarge), Provider: ProviderMistral, ModelID: mistralModelPixtralLarge,
 		DisplayName:           "Pixtral Large",
 		Description:           "Mistral's multimodal model — text and vision",
 		InputPricePer1MTokens: 2.00, OutputPricePer1MTokens: 6.00,
@@ -856,8 +1267,8 @@ var catalog = map[string]ModelDefinition{
 			{Key: "image", Label: "Image", Type: InputTypeImage, Required: false},
 		},
 	},
-	"mistral/magistral-medium": {
-		Key: "mistral/magistral-medium", Provider: ProviderMistral, ModelID: "magistral-medium-latest",
+	mistralCatalogKey(mistralSlugMagistralMedium): {
+		Key: mistralCatalogKey(mistralSlugMagistralMedium), Provider: ProviderMistral, ModelID: mistralModelMagistralMedium,
 		DisplayName:           "Magistral Medium",
 		Description:           "Mistral's reasoning-focused model",
 		InputPricePer1MTokens: 2.00, OutputPricePer1MTokens: 5.00,
@@ -867,8 +1278,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsMistral,
 		InputFields:         mistralFields,
 	},
-	"mistral/ministral-8b": {
-		Key: "mistral/ministral-8b", Provider: ProviderMistral, ModelID: "ministral-8b-latest",
+	mistralCatalogKey(mistralSlugMinistral8B): {
+		Key: mistralCatalogKey(mistralSlugMinistral8B), Provider: ProviderMistral, ModelID: mistralModelMinistral8B,
 		DisplayName:           "Ministral 8B",
 		Description:           "Compact 8B model optimised for edge and on-device use",
 		InputPricePer1MTokens: 0.10, OutputPricePer1MTokens: 0.10,
@@ -877,8 +1288,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsMistral,
 		InputFields:         mistralFields,
 	},
-	"mistral/ministral-3b": {
-		Key: "mistral/ministral-3b", Provider: ProviderMistral, ModelID: "ministral-3b-latest",
+	mistralCatalogKey(mistralSlugMinistral3B): {
+		Key: mistralCatalogKey(mistralSlugMinistral3B), Provider: ProviderMistral, ModelID: mistralModelMinistral3B,
 		DisplayName:           "Ministral 3B",
 		Description:           "Smallest Mistral model — ultra-low-cost inference",
 		InputPricePer1MTokens: 0.04, OutputPricePer1MTokens: 0.04,
@@ -887,8 +1298,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsMistral,
 		InputFields:         mistralFields,
 	},
-	"mistral/open-mistral-nemo": {
-		Key: "mistral/open-mistral-nemo", Provider: ProviderMistral, ModelID: "open-mistral-nemo",
+	mistralCatalogKey(mistralModelOpenMistralNemo): {
+		Key: mistralCatalogKey(mistralModelOpenMistralNemo), Provider: ProviderMistral, ModelID: mistralModelOpenMistralNemo,
 		DisplayName:           "Mistral Nemo",
 		Description:           "Open 12B model — best-in-class for its size",
 		InputPricePer1MTokens: 0.01, OutputPricePer1MTokens: 0.03,
@@ -897,8 +1308,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsMistral,
 		InputFields:         mistralFields,
 	},
-	"mistral/open-mixtral-8x22b": {
-		Key: "mistral/open-mixtral-8x22b", Provider: ProviderMistral, ModelID: "open-mixtral-8x22b",
+	mistralCatalogKey(mistralModelOpenMixtral8x22B): {
+		Key: mistralCatalogKey(mistralModelOpenMixtral8x22B), Provider: ProviderMistral, ModelID: mistralModelOpenMixtral8x22B,
 		DisplayName:           "Mixtral 8x22B",
 		Description:           "Open mixture-of-experts model — strong multilingual and reasoning performance",
 		InputPricePer1MTokens: 1.20, OutputPricePer1MTokens: 1.20,
@@ -908,8 +1319,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsMistral,
 		InputFields:         mistralFields,
 	},
-	"mistral/open-mixtral-8x7b": {
-		Key: "mistral/open-mixtral-8x7b", Provider: ProviderMistral, ModelID: "open-mixtral-8x7b",
+	mistralCatalogKey(mistralModelOpenMixtral8x7B): {
+		Key: mistralCatalogKey(mistralModelOpenMixtral8x7B), Provider: ProviderMistral, ModelID: mistralModelOpenMixtral8x7B,
 		DisplayName:           "Mixtral 8x7B",
 		Description:           "Open mixture-of-experts model — fast and capable for most tasks",
 		InputPricePer1MTokens: 0.14, OutputPricePer1MTokens: 0.42,
@@ -921,8 +1332,8 @@ var catalog = map[string]ModelDefinition{
 
 	// ── Ollama (self-hosted) ────────────────────────────────────────────────────
 
-	"ollama/llama-3.3-70b": {
-		Key: "ollama/llama-3.3-70b", Provider: ProviderOllama, ModelID: "llama3.3:70b",
+	ollamaCatalogKey(ollamaSlugLlama3370B): {
+		Key: ollamaCatalogKey(ollamaSlugLlama3370B), Provider: ProviderOllama, ModelID: ollamaModelLlama3370B,
 		DisplayName:      "Llama 3.3 70B",
 		Description:      "Meta's Llama 3.3 70B — self-hosted via Ollama",
 		Capabilities:     []string{"function_calling"},
@@ -933,8 +1344,8 @@ var catalog = map[string]ModelDefinition{
 			{Key: "prompt", Label: "Prompt", Type: InputTypeText, Required: true},
 		},
 	},
-	"ollama/mistral-nemo": {
-		Key: "ollama/mistral-nemo", Provider: ProviderOllama, ModelID: "mistral-nemo",
+	ollamaCatalogKey(ollamaSlugMistralNemo): {
+		Key: ollamaCatalogKey(ollamaSlugMistralNemo), Provider: ProviderOllama, ModelID: ollamaModelMistralNemo,
 		DisplayName:      "Mistral Nemo (Ollama)",
 		Description:      "Mistral Nemo — efficient self-hosted model via Ollama",
 		Capabilities:     []string{"function_calling"},
@@ -948,8 +1359,8 @@ var catalog = map[string]ModelDefinition{
 
 	// ── vLLM (self-hosted, OpenAI-compatible) ───────────────────────────────────
 
-	"vllm/llama-3.1-8b-instruct": {
-		Key: "vllm/llama-3.1-8b-instruct", Provider: ProviderVLLM, ModelID: "meta-llama/Meta-Llama-3.1-8B-Instruct",
+	vllmCatalogKey(vllmSlugLlama318B): {
+		Key: vllmCatalogKey(vllmSlugLlama318B), Provider: ProviderVLLM, ModelID: vllmModelLlama318B,
 		DisplayName:         "Llama 3.1 8B Instruct (vLLM)",
 		Description:         "Meta's Llama 3.1 8B instruction-tuned model — fast self-hosted via vLLM",
 		Capabilities:        []string{"function_calling"},
@@ -958,8 +1369,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsVLLM,
 		InputFields:         oaiFieldsVision,
 	},
-	"vllm/llama-3.1-70b-instruct": {
-		Key: "vllm/llama-3.1-70b-instruct", Provider: ProviderVLLM, ModelID: "meta-llama/Meta-Llama-3.1-70B-Instruct",
+	vllmCatalogKey(vllmSlugLlama3170B): {
+		Key: vllmCatalogKey(vllmSlugLlama3170B), Provider: ProviderVLLM, ModelID: vllmModelLlama3170B,
 		DisplayName:         "Llama 3.1 70B Instruct (vLLM)",
 		Description:         "Meta's Llama 3.1 70B instruction-tuned model — self-hosted via vLLM",
 		Capabilities:        []string{"function_calling"},
@@ -968,8 +1379,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsVLLM,
 		InputFields:         oaiFields,
 	},
-	"vllm/mistral-7b-instruct": {
-		Key: "vllm/mistral-7b-instruct", Provider: ProviderVLLM, ModelID: "mistralai/Mistral-7B-Instruct-v0.3",
+	vllmCatalogKey(vllmSlugMistral7B): {
+		Key: vllmCatalogKey(vllmSlugMistral7B), Provider: ProviderVLLM, ModelID: vllmModelMistral7B,
 		DisplayName:         "Mistral 7B Instruct (vLLM)",
 		Description:         "Mistral 7B instruction-tuned — lightweight and fast on commodity GPUs",
 		ContextWindowTokens: 32_768,
@@ -977,8 +1388,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsVLLM,
 		InputFields:         oaiFields,
 	},
-	"vllm/qwen2.5-72b-instruct": {
-		Key: "vllm/qwen2.5-72b-instruct", Provider: ProviderVLLM, ModelID: "Qwen/Qwen2.5-72B-Instruct",
+	vllmCatalogKey(vllmSlugQwen2572B): {
+		Key: vllmCatalogKey(vllmSlugQwen2572B), Provider: ProviderVLLM, ModelID: vllmModelQwen2572B,
 		DisplayName:         "Qwen 2.5 72B Instruct (vLLM)",
 		Description:         "Alibaba's Qwen 2.5 72B — strong multilingual and coding capabilities",
 		Capabilities:        []string{"function_calling"},
@@ -987,8 +1398,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsVLLM,
 		InputFields:         oaiFields,
 	},
-	"vllm/deepseek-coder-v2-lite": {
-		Key: "vllm/deepseek-coder-v2-lite", Provider: ProviderVLLM, ModelID: "deepseek-ai/DeepSeek-Coder-V2-Lite-Instruct",
+	vllmCatalogKey(vllmSlugDeepSeekCoderV2): {
+		Key: vllmCatalogKey(vllmSlugDeepSeekCoderV2), Provider: ProviderVLLM, ModelID: vllmModelDeepSeekCoderV2,
 		DisplayName:         "DeepSeek Coder V2 Lite (vLLM)",
 		Description:         "Efficient self-hosted coding model — 16B MoE via vLLM",
 		Capabilities:        []string{"function_calling"},
@@ -1000,8 +1411,8 @@ var catalog = map[string]ModelDefinition{
 
 	// ── LocalAI (self-hosted, OpenAI-compatible) ─────────────────────────────
 
-	"localai/llama-3.1-8b-instruct": {
-		Key: "localai/llama-3.1-8b-instruct", Provider: ProviderLocalAI, ModelID: "llama-3.1-8b-instruct",
+	localAICatalogKey(localAISlugLlama318B): {
+		Key: localAICatalogKey(localAISlugLlama318B), Provider: ProviderLocalAI, ModelID: localAIModelLlama318B,
 		DisplayName:         "Llama 3.1 8B Instruct (LocalAI)",
 		Description:         "Meta's Llama 3.1 8B via LocalAI — runs on CPU or GPU without CUDA required",
 		ContextWindowTokens: 131_072,
@@ -1009,8 +1420,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsLocalAI,
 		InputFields:         oaiFields,
 	},
-	"localai/mistral-7b": {
-		Key: "localai/mistral-7b", Provider: ProviderLocalAI, ModelID: "mistral-7b-instruct",
+	localAICatalogKey(localAISlugMistral7B): {
+		Key: localAICatalogKey(localAISlugMistral7B), Provider: ProviderLocalAI, ModelID: localAIModelMistral7B,
 		DisplayName:         "Mistral 7B (LocalAI)",
 		Description:         "Mistral 7B instruction model via LocalAI",
 		ContextWindowTokens: 32_768,
@@ -1018,8 +1429,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsLocalAI,
 		InputFields:         oaiFields,
 	},
-	"localai/codellama-13b": {
-		Key: "localai/codellama-13b", Provider: ProviderLocalAI, ModelID: "codellama-13b-instruct",
+	localAICatalogKey(localAISlugCodeLlama13B): {
+		Key: localAICatalogKey(localAISlugCodeLlama13B), Provider: ProviderLocalAI, ModelID: localAIModelCodeLlama13B,
 		DisplayName:         "CodeLlama 13B (LocalAI)",
 		Description:         "Meta's CodeLlama 13B — code generation and completion via LocalAI",
 		ContextWindowTokens: 16_384,
@@ -1027,8 +1438,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsLocalAI,
 		InputFields:         oaiFields,
 	},
-	"localai/phi-3-medium": {
-		Key: "localai/phi-3-medium", Provider: ProviderLocalAI, ModelID: "phi-3-medium-128k-instruct",
+	localAICatalogKey(localAISlugPhi3Medium): {
+		Key: localAICatalogKey(localAISlugPhi3Medium), Provider: ProviderLocalAI, ModelID: localAIModelPhi3Medium,
 		DisplayName:         "Phi-3 Medium (LocalAI)",
 		Description:         "Microsoft's Phi-3 Medium — efficient reasoning model with 128K context via LocalAI",
 		ContextWindowTokens: 131_072,
@@ -1039,8 +1450,8 @@ var catalog = map[string]ModelDefinition{
 
 	// ── Kling ───────────────────────────────────────────────────────────────────
 
-	"kling/kling-v1": {
-		Key: "kling/kling-v1", Provider: ProviderKling, ModelID: "kling-v1",
+	klingCatalogKey(klingSlugV1): {
+		Key: klingCatalogKey(klingSlugV1), Provider: ProviderKling, ModelID: klingModelV1,
 		DisplayName:      "Kling v1",
 		Description:      "Text-to-video generation",
 		Capabilities:     []string{"video_generation"},
@@ -1051,8 +1462,8 @@ var catalog = map[string]ModelDefinition{
 				Description: "Describe the video you want to generate"},
 		},
 	},
-	"kling/kling-v1-image": {
-		Key: "kling/kling-v1-image", Provider: ProviderKling, ModelID: "kling-v1",
+	klingCatalogKey(klingSlugV1Image): {
+		Key: klingCatalogKey(klingSlugV1Image), Provider: ProviderKling, ModelID: klingModelV1,
 		DisplayName:      "Kling v1 Image-to-Video",
 		Description:      "Animate a reference image into a video",
 		Capabilities:     []string{"video_generation", "image_to_video"},
@@ -1064,8 +1475,8 @@ var catalog = map[string]ModelDefinition{
 				Description: "The base image to animate"},
 		},
 	},
-	"kling/kling-v2": {
-		Key: "kling/kling-v2", Provider: ProviderKling, ModelID: "kling-v2",
+	klingCatalogKey(klingSlugV2): {
+		Key: klingCatalogKey(klingSlugV2), Provider: ProviderKling, ModelID: klingModelV2,
 		DisplayName:      "Kling v2",
 		Description:      "Enhanced text-to-video generation",
 		Capabilities:     []string{"video_generation"},
@@ -1075,8 +1486,8 @@ var catalog = map[string]ModelDefinition{
 			{Key: "prompt", Label: "Prompt", Type: InputTypeText, Required: true, MaxLength: 2500},
 		},
 	},
-	"kling/kling-v2.1": {
-		Key: "kling/kling-v2.1", Provider: ProviderKling, ModelID: "kling-v2.1",
+	klingCatalogKey(klingSlugV21): {
+		Key: klingCatalogKey(klingSlugV21), Provider: ProviderKling, ModelID: klingModelV21,
 		DisplayName:      "Kling v2.1",
 		Description:      "Improved fidelity and motion quality over v2",
 		Capabilities:     []string{"video_generation", "image_to_video"},
@@ -1087,8 +1498,8 @@ var catalog = map[string]ModelDefinition{
 			{Key: "referenceImage", Label: "Reference Image", Type: InputTypeImage, Required: false},
 		},
 	},
-	"kling/kling-v3-motion-control": {
-		Key: "kling/kling-v3-motion-control", Provider: ProviderKling, ModelID: "kling-v3",
+	klingCatalogKey(klingSlugV3MotionControl): {
+		Key: klingCatalogKey(klingSlugV3MotionControl), Provider: ProviderKling, ModelID: klingModelV3,
 		DisplayName:      "Kling v3 Motion Control",
 		Description:      "Generate videos with precise motion control: provide a character image and a motion reference video",
 		Capabilities:     []string{"video_generation", "image_to_video", "motion_control"},
@@ -1106,8 +1517,8 @@ var catalog = map[string]ModelDefinition{
 
 	// ── Custom ──────────────────────────────────────────────────────────────────
 
-	"custom": {
-		Key: "custom", Provider: ProviderCustom, ModelID: "",
+	customCatalogKey: {
+		Key: customCatalogKey, Provider: ProviderCustom, ModelID: "",
 		DisplayName:      "Custom",
 		Description:      "Generic passthrough — all fields and options are forwarded verbatim to the configured endpoint",
 		CredentialFields: credsCustom,
@@ -1121,8 +1532,8 @@ var catalog = map[string]ModelDefinition{
 	// These have no InputFields — they are called programmatically by semantic
 	// features (semantic_cache, semantic_classifier), not through the inference UI.
 
-	"openai/text-embedding-3-small": {
-		Key: "openai/text-embedding-3-small", Provider: ProviderOpenAi, ModelID: "text-embedding-3-small",
+	openAIEmbeddingCatalogKey(openAIModelTextEmbedding3Small): {
+		Key: openAIEmbeddingCatalogKey(openAIModelTextEmbedding3Small), Provider: ProviderOpenAi, ModelID: openAIModelTextEmbedding3Small,
 		DisplayName:           "OpenAI Text Embedding 3 Small",
 		Description:           "Fast, cost-effective embedding model for semantic search and routing",
 		InputPricePer1MTokens: 0.02,
@@ -1132,8 +1543,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:      credsOpenAI,
 		InputFields:           []InputFieldDef{},
 	},
-	"openai/text-embedding-3-large": {
-		Key: "openai/text-embedding-3-large", Provider: ProviderOpenAi, ModelID: "text-embedding-3-large",
+	openAIEmbeddingCatalogKey(openAIModelTextEmbedding3Large): {
+		Key: openAIEmbeddingCatalogKey(openAIModelTextEmbedding3Large), Provider: ProviderOpenAi, ModelID: openAIModelTextEmbedding3Large,
 		DisplayName:           "OpenAI Text Embedding 3 Large",
 		Description:           "High-accuracy embedding model for demanding semantic applications",
 		InputPricePer1MTokens: 0.13,
@@ -1143,8 +1554,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:      credsOpenAI,
 		InputFields:           []InputFieldDef{},
 	},
-	"openai/text-embedding-ada-002": {
-		Key: "openai/text-embedding-ada-002", Provider: ProviderOpenAi, ModelID: "text-embedding-ada-002",
+	openAIEmbeddingCatalogKey(openAIModelTextEmbeddingAda002): {
+		Key: openAIEmbeddingCatalogKey(openAIModelTextEmbeddingAda002), Provider: ProviderOpenAi, ModelID: openAIModelTextEmbeddingAda002,
 		DisplayName:           "OpenAI Text Embedding Ada 002",
 		Description:           "Legacy OpenAI embedding model — use text-embedding-3-small for new projects",
 		InputPricePer1MTokens: 0.10,
@@ -1154,8 +1565,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:      credsOpenAI,
 		InputFields:           []InputFieldDef{},
 	},
-	"mistral/mistral-embed": {
-		Key: "mistral/mistral-embed", Provider: ProviderMistral, ModelID: "mistral-embed",
+	mistralCatalogKey(mistralSlugEmbed): {
+		Key: mistralCatalogKey(mistralSlugEmbed), Provider: ProviderMistral, ModelID: mistralModelEmbed,
 		DisplayName:           "Mistral Embed",
 		Description:           "Mistral's embedding model for semantic search and classification",
 		InputPricePer1MTokens: 0.10,
@@ -1165,16 +1576,16 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:      credsMistral,
 		InputFields:           []InputFieldDef{},
 	},
-	"ollama/nomic-embed-text": {
-		Key: "ollama/nomic-embed-text", Provider: ProviderOllama, ModelID: "nomic-embed-text",
+	ollamaCatalogKey(ollamaSlugNomicEmbed): {
+		Key: ollamaCatalogKey(ollamaSlugNomicEmbed), Provider: ProviderOllama, ModelID: ollamaModelNomicEmbed,
 		DisplayName:      "Nomic Embed Text (Ollama)",
 		Description:      "Local open-source embedding model for semantic search and routing",
 		Capabilities:     []string{"embedding"},
 		CredentialFields: credsOllama,
 		InputFields:      []InputFieldDef{},
 	},
-	"ollama/mxbai-embed-large": {
-		Key: "ollama/mxbai-embed-large", Provider: ProviderOllama, ModelID: "mxbai-embed-large",
+	ollamaCatalogKey(ollamaSlugMxbaiEmbed): {
+		Key: ollamaCatalogKey(ollamaSlugMxbaiEmbed), Provider: ProviderOllama, ModelID: ollamaModelMxbaiEmbed,
 		DisplayName:      "MixedBread Embed Large (Ollama)",
 		Description:      "High-performance local embedding model via Ollama",
 		Capabilities:     []string{"embedding"},
@@ -1183,8 +1594,8 @@ var catalog = map[string]ModelDefinition{
 	},
 	// ── Azure OpenAI ──────────────────────────────────────────────────────────────
 
-	"azure/gpt-4o": {
-		Key: "azure/gpt-4o", Provider: ProviderAzureOpenAI, ModelID: "gpt-4o",
+	azureOpenAICatalogKey(openAIModelGPT4o): {
+		Key: azureOpenAICatalogKey(openAIModelGPT4o), Provider: ProviderAzureOpenAI, ModelID: openAIModelGPT4o,
 		DisplayName:           "GPT-4o (Azure)",
 		Description:           "OpenAI GPT-4o hosted on Azure OpenAI Service",
 		InputPricePer1MTokens: 2.50, OutputPricePer1MTokens: 10.00,
@@ -1194,8 +1605,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsAzureOpenAI,
 		InputFields:         oaiFieldsVision,
 	},
-	"azure/gpt-4o-mini": {
-		Key: "azure/gpt-4o-mini", Provider: ProviderAzureOpenAI, ModelID: "gpt-4o-mini",
+	azureOpenAICatalogKey(openAIModelGPT4oMini): {
+		Key: azureOpenAICatalogKey(openAIModelGPT4oMini), Provider: ProviderAzureOpenAI, ModelID: openAIModelGPT4oMini,
 		DisplayName:           "GPT-4o Mini (Azure)",
 		Description:           "Fast and affordable GPT-4o Mini on Azure",
 		InputPricePer1MTokens: 0.15, OutputPricePer1MTokens: 0.60,
@@ -1205,8 +1616,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsAzureOpenAI,
 		InputFields:         oaiFieldsVision,
 	},
-	"azure/gpt-4.1": {
-		Key: "azure/gpt-4.1", Provider: ProviderAzureOpenAI, ModelID: "gpt-4.1",
+	azureOpenAICatalogKey(openAIModelGPT41): {
+		Key: azureOpenAICatalogKey(openAIModelGPT41), Provider: ProviderAzureOpenAI, ModelID: openAIModelGPT41,
 		DisplayName:           "GPT-4.1 (Azure)",
 		Description:           "OpenAI GPT-4.1 hosted on Azure OpenAI Service",
 		InputPricePer1MTokens: 2.00, OutputPricePer1MTokens: 8.00,
@@ -1216,8 +1627,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsAzureOpenAI,
 		InputFields:         oaiFieldsVision,
 	},
-	"azure/o3-mini": {
-		Key: "azure/o3-mini", Provider: ProviderAzureOpenAI, ModelID: "o3-mini",
+	azureOpenAICatalogKey(openAIModelO3Mini): {
+		Key: azureOpenAICatalogKey(openAIModelO3Mini), Provider: ProviderAzureOpenAI, ModelID: openAIModelO3Mini,
 		DisplayName:           "o3-mini (Azure)",
 		Description:           "OpenAI o3-mini reasoning model on Azure",
 		InputPricePer1MTokens: 1.10, OutputPricePer1MTokens: 4.40,
@@ -1230,8 +1641,8 @@ var catalog = map[string]ModelDefinition{
 
 	// ── Groq ─────────────────────────────────────────────────────────────────────
 
-	"groq/llama-3.3-70b": {
-		Key: "groq/llama-3.3-70b", Provider: ProviderGroq, ModelID: "llama-3.3-70b-versatile",
+	groqCatalogKey(groqSlugLlama3370B): {
+		Key: groqCatalogKey(groqSlugLlama3370B), Provider: ProviderGroq, ModelID: groqModelLlama3370B,
 		DisplayName:           "Llama 3.3 70B (Groq)",
 		Description:           "Meta Llama 3.3 70B via Groq — ultra-fast inference",
 		InputPricePer1MTokens: 0.59, OutputPricePer1MTokens: 0.79,
@@ -1241,8 +1652,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsGroq,
 		InputFields:         oaiFields,
 	},
-	"groq/llama-3.1-8b": {
-		Key: "groq/llama-3.1-8b", Provider: ProviderGroq, ModelID: "llama-3.1-8b-instant",
+	groqCatalogKey(groqSlugLlama318B): {
+		Key: groqCatalogKey(groqSlugLlama318B), Provider: ProviderGroq, ModelID: groqModelLlama318B,
 		DisplayName:           "Llama 3.1 8B Instant (Groq)",
 		Description:           "Fastest small model on Groq — ideal for high-throughput tasks",
 		InputPricePer1MTokens: 0.05, OutputPricePer1MTokens: 0.08,
@@ -1252,8 +1663,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsGroq,
 		InputFields:         oaiFields,
 	},
-	"groq/mixtral-8x7b": {
-		Key: "groq/mixtral-8x7b", Provider: ProviderGroq, ModelID: "mixtral-8x7b-32768",
+	groqCatalogKey(groqSlugMixtral8x7B): {
+		Key: groqCatalogKey(groqSlugMixtral8x7B), Provider: ProviderGroq, ModelID: groqModelMixtral8x7B,
 		DisplayName:           "Mixtral 8x7B (Groq)",
 		Description:           "Mistral Mixtral MoE model served by Groq",
 		InputPricePer1MTokens: 0.24, OutputPricePer1MTokens: 0.24,
@@ -1263,8 +1674,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsGroq,
 		InputFields:         oaiFields,
 	},
-	"groq/deepseek-r1-70b": {
-		Key: "groq/deepseek-r1-70b", Provider: ProviderGroq, ModelID: "deepseek-r1-distill-llama-70b",
+	groqCatalogKey(groqSlugDeepSeekR170B): {
+		Key: groqCatalogKey(groqSlugDeepSeekR170B), Provider: ProviderGroq, ModelID: groqModelDeepSeekR170B,
 		DisplayName:           "DeepSeek R1 70B (Groq)",
 		Description:           "DeepSeek R1 distilled reasoning model — fast on Groq",
 		InputPricePer1MTokens: 0.75, OutputPricePer1MTokens: 0.99,
@@ -1274,8 +1685,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsGroq,
 		InputFields:         oaiFields,
 	},
-	"groq/llama-4-scout": {
-		Key: "groq/llama-4-scout", Provider: ProviderGroq, ModelID: "meta-llama/llama-4-scout-17b-16e-instruct",
+	groqCatalogKey(groqSlugLlama4Scout): {
+		Key: groqCatalogKey(groqSlugLlama4Scout), Provider: ProviderGroq, ModelID: groqModelLlama4Scout,
 		DisplayName:           "Llama 4 Scout 17B (Groq)",
 		Description:           "Meta Llama 4 Scout multimodal model on Groq",
 		InputPricePer1MTokens: 0.11, OutputPricePer1MTokens: 0.34,
@@ -1288,8 +1699,8 @@ var catalog = map[string]ModelDefinition{
 
 	// ── Cohere ────────────────────────────────────────────────────────────────────
 
-	"cohere/command-r-plus": {
-		Key: "cohere/command-r-plus", Provider: ProviderCohere, ModelID: "command-r-plus",
+	cohereCatalogKey(cohereModelCommandRPlus): {
+		Key: cohereCatalogKey(cohereModelCommandRPlus), Provider: ProviderCohere, ModelID: cohereModelCommandRPlus,
 		DisplayName:           "Command R+ (Cohere)",
 		Description:           "Cohere's most capable model — RAG and complex reasoning",
 		InputPricePer1MTokens: 2.50, OutputPricePer1MTokens: 10.00,
@@ -1299,8 +1710,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsCohere,
 		InputFields:         oaiFields,
 	},
-	"cohere/command-r": {
-		Key: "cohere/command-r", Provider: ProviderCohere, ModelID: "command-r",
+	cohereCatalogKey(cohereModelCommandR): {
+		Key: cohereCatalogKey(cohereModelCommandR), Provider: ProviderCohere, ModelID: cohereModelCommandR,
 		DisplayName:           "Command R (Cohere)",
 		Description:           "Balanced performance and cost for RAG workflows",
 		InputPricePer1MTokens: 0.15, OutputPricePer1MTokens: 0.60,
@@ -1310,8 +1721,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsCohere,
 		InputFields:         oaiFields,
 	},
-	"cohere/command-r7b": {
-		Key: "cohere/command-r7b", Provider: ProviderCohere, ModelID: "command-r7b-12-2024",
+	cohereCatalogKey(cohereSlugCommandR7B): {
+		Key: cohereCatalogKey(cohereSlugCommandR7B), Provider: ProviderCohere, ModelID: cohereModelCommandR7B,
 		DisplayName:           "Command R7B (Cohere)",
 		Description:           "Compact, efficient model for low-latency tasks",
 		InputPricePer1MTokens: 0.0375, OutputPricePer1MTokens: 0.15,
@@ -1323,8 +1734,8 @@ var catalog = map[string]ModelDefinition{
 
 	// ── AWS Bedrock ───────────────────────────────────────────────────────────────
 
-	"bedrock/claude-3-5-sonnet": {
-		Key: "bedrock/claude-3-5-sonnet", Provider: ProviderBedrock, ModelID: "anthropic.claude-3-5-sonnet-20241022-v2:0",
+	bedrockCatalogKey(bedrockSlugClaude35Sonnet): {
+		Key: bedrockCatalogKey(bedrockSlugClaude35Sonnet), Provider: ProviderBedrock, ModelID: bedrockModelClaude35Sonnet,
 		DisplayName:           "Claude 3.5 Sonnet (Bedrock)",
 		Description:           "Anthropic Claude 3.5 Sonnet via AWS Bedrock",
 		InputPricePer1MTokens: 3.00, OutputPricePer1MTokens: 15.00,
@@ -1334,8 +1745,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsBedrock,
 		InputFields:         anthropicFields,
 	},
-	"bedrock/claude-3-5-haiku": {
-		Key: "bedrock/claude-3-5-haiku", Provider: ProviderBedrock, ModelID: "anthropic.claude-3-5-haiku-20241022-v1:0",
+	bedrockCatalogKey(bedrockSlugClaude35Haiku): {
+		Key: bedrockCatalogKey(bedrockSlugClaude35Haiku), Provider: ProviderBedrock, ModelID: bedrockModelClaude35Haiku,
 		DisplayName:           "Claude 3.5 Haiku (Bedrock)",
 		Description:           "Fast, affordable Claude 3.5 Haiku via AWS Bedrock",
 		InputPricePer1MTokens: 0.80, OutputPricePer1MTokens: 4.00,
@@ -1345,8 +1756,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsBedrock,
 		InputFields:         anthropicFields,
 	},
-	"bedrock/claude-3-opus": {
-		Key: "bedrock/claude-3-opus", Provider: ProviderBedrock, ModelID: "anthropic.claude-3-opus-20240229-v1:0",
+	bedrockCatalogKey(bedrockSlugClaude3Opus): {
+		Key: bedrockCatalogKey(bedrockSlugClaude3Opus), Provider: ProviderBedrock, ModelID: bedrockModelClaude3Opus,
 		DisplayName:           "Claude 3 Opus (Bedrock)",
 		Description:           "Most capable Claude 3 via AWS Bedrock",
 		InputPricePer1MTokens: 15.00, OutputPricePer1MTokens: 75.00,
@@ -1356,8 +1767,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsBedrock,
 		InputFields:         anthropicFields,
 	},
-	"bedrock/llama-3-3-70b": {
-		Key: "bedrock/llama-3-3-70b", Provider: ProviderBedrock, ModelID: "us.meta.llama3-3-70b-instruct-v1:0",
+	bedrockCatalogKey(bedrockSlugLlama3370B): {
+		Key: bedrockCatalogKey(bedrockSlugLlama3370B), Provider: ProviderBedrock, ModelID: bedrockModelLlama3370B,
 		DisplayName:           "Llama 3.3 70B (Bedrock)",
 		Description:           "Meta Llama 3.3 70B Instruct via AWS Bedrock",
 		InputPricePer1MTokens: 0.72, OutputPricePer1MTokens: 0.72,
@@ -1366,8 +1777,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsBedrock,
 		InputFields:         oaiFields,
 	},
-	"bedrock/nova-pro": {
-		Key: "bedrock/nova-pro", Provider: ProviderBedrock, ModelID: "amazon.nova-pro-v1:0",
+	bedrockCatalogKey(bedrockSlugNovaPro): {
+		Key: bedrockCatalogKey(bedrockSlugNovaPro), Provider: ProviderBedrock, ModelID: bedrockModelNovaPro,
 		DisplayName:           "Amazon Nova Pro (Bedrock)",
 		Description:           "Amazon's most capable Nova model — multimodal",
 		InputPricePer1MTokens: 0.80, OutputPricePer1MTokens: 3.20,
@@ -1377,8 +1788,8 @@ var catalog = map[string]ModelDefinition{
 		CredentialFields:    credsBedrock,
 		InputFields:         oaiFieldsVision,
 	},
-	"bedrock/nova-lite": {
-		Key: "bedrock/nova-lite", Provider: ProviderBedrock, ModelID: "amazon.nova-lite-v1:0",
+	bedrockCatalogKey(bedrockSlugNovaLite): {
+		Key: bedrockCatalogKey(bedrockSlugNovaLite), Provider: ProviderBedrock, ModelID: bedrockModelNovaLite,
 		DisplayName:           "Amazon Nova Lite (Bedrock)",
 		Description:           "Fast, low-cost Amazon Nova model",
 		InputPricePer1MTokens: 0.06, OutputPricePer1MTokens: 0.24,
@@ -1422,7 +1833,10 @@ func DefinitionKeysMatchingQuery(query string) []string {
 // FindModelDefinition returns the ModelDefinition for key, or (zero, false) if not found.
 func FindModelDefinition(key string) (ModelDefinition, bool) {
 	def, ok := catalog[key]
-	return def, ok
+	if !ok {
+		return ModelDefinition{}, false
+	}
+	return def.withPromptCachePricing(), true
 }
 
 // HasCapability reports whether the model definition includes the given capability string.
@@ -1435,21 +1849,72 @@ func (d *ModelDefinition) HasCapability(cap string) bool {
 	return false
 }
 
-// ComputeCostUSD returns the estimated cost in USD for the given token counts.
-// Returns 0 when pricing is unknown (either price field is 0).
+func (d ModelDefinition) withPromptCachePricing() ModelDefinition {
+	if d.InputPricePer1MTokens == 0 {
+		return d
+	}
+	switch d.Provider {
+	case ProviderOpenAi, ProviderAzureOpenAI:
+		if d.CachedInputPricePer1MTokens == 0 {
+			if price, ok := openAICachedInputPricesPer1M[d.ModelID]; ok {
+				d.CachedInputPricePer1MTokens = price
+			}
+		}
+	case ProviderAnthropic:
+		if d.CachedInputPricePer1MTokens == 0 {
+			d.CachedInputPricePer1MTokens = d.InputPricePer1MTokens * 0.10
+		}
+		if d.CacheWriteInputPricePer1MTokens == 0 {
+			d.CacheWriteInputPricePer1MTokens = d.InputPricePer1MTokens * 1.25
+		}
+		if d.CacheWrite1hInputPricePer1MTokens == 0 {
+			d.CacheWrite1hInputPricePer1MTokens = d.InputPricePer1MTokens * 2.00
+		}
+	}
+	return d
+}
+
+// ComputeCostUSD returns the estimated cost in USD for the given total input and output token counts.
 func (d *ModelDefinition) ComputeCostUSD(inputTokens, outputTokens int64) float64 {
+	return d.ComputeUsageCostUSD(TokenUsage{InputTokens: inputTokens, OutputTokens: outputTokens})
+}
+
+// ComputeUsageCostUSD returns the estimated cost in USD for a normalized token breakdown.
+func (d *ModelDefinition) ComputeUsageCostUSD(usage TokenUsage) float64 {
 	if d.InputPricePer1MTokens == 0 && d.OutputPricePer1MTokens == 0 {
 		return 0
 	}
-	return (float64(inputTokens)*d.InputPricePer1MTokens +
-		float64(outputTokens)*d.OutputPricePer1MTokens) / 1_000_000
+	def := d.withPromptCachePricing()
+	cachedInputPrice := def.CachedInputPricePer1MTokens
+	if cachedInputPrice == 0 {
+		cachedInputPrice = def.InputPricePer1MTokens
+	}
+	cacheWritePrice := def.CacheWriteInputPricePer1MTokens
+	if cacheWritePrice == 0 {
+		cacheWritePrice = def.InputPricePer1MTokens
+	}
+	cacheWrite1hPrice := def.CacheWrite1hInputPricePer1MTokens
+	if cacheWrite1hPrice == 0 {
+		cacheWrite1hPrice = cacheWritePrice
+	}
+
+	regularInputTokens := usage.InputTokens - usage.CachedInputTokens - usage.CacheWriteInputTokens - usage.CacheWrite1hInputTokens
+	if regularInputTokens < 0 {
+		regularInputTokens = 0
+	}
+
+	return (float64(regularInputTokens)*def.InputPricePer1MTokens +
+		float64(usage.CachedInputTokens)*cachedInputPrice +
+		float64(usage.CacheWriteInputTokens)*cacheWritePrice +
+		float64(usage.CacheWrite1hInputTokens)*cacheWrite1hPrice +
+		float64(usage.OutputTokens)*def.OutputPricePer1MTokens) / 1_000_000
 }
 
 // AllDefinitions returns every catalog entry sorted alphabetically by key.
 func AllDefinitions() []ModelDefinition {
 	out := make([]ModelDefinition, 0, len(catalog))
 	for _, d := range catalog {
-		out = append(out, d)
+		out = append(out, d.withPromptCachePricing())
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Key < out[j].Key })
 	return out

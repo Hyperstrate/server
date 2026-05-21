@@ -433,17 +433,19 @@ func (p *featurePipeline) executeMCPTools(
 		trace.CostUSD += next.CostUSD
 		addTraceStep(PipelineStep{Phase: 6, Kind: "mcp_reinfer", Name: "MCP Follow-up Inference", Outcome: "success", Detail: fmt.Sprintf("%s · %d↑ %d↓ tok · $%.5f", next.ModelDefKey, next.InputTokens, next.OutputTokens, next.CostUSD)}, time.Since(t0Reinfer))
 		current = &RouteInferResult{
-			Content:           next.Content,
-			SelectedModelID:   modelID,
-			ModelDefKey:       next.ModelDefKey,
-			Provider:          next.Provider,
-			InputTokens:       current.InputTokens + next.InputTokens,
-			OutputTokens:      current.OutputTokens + next.OutputTokens,
-			CachedInputTokens: current.CachedInputTokens + next.CachedInputTokens,
-			CostUSD:           current.CostUSD + next.CostUSD,
-			ABVariant:         current.ABVariant,
-			ToolCalls:         next.ToolCalls,
-			ToolCallCaptures:  append([]ToolCallCapture(nil), trace.ToolCaptures...),
+			Content:                 next.Content,
+			SelectedModelID:         modelID,
+			ModelDefKey:             next.ModelDefKey,
+			Provider:                next.Provider,
+			InputTokens:             current.InputTokens + next.InputTokens,
+			OutputTokens:            current.OutputTokens + next.OutputTokens,
+			CachedInputTokens:       current.CachedInputTokens + next.CachedInputTokens,
+			CacheWriteInputTokens:   current.CacheWriteInputTokens + next.CacheWriteInputTokens,
+			CacheWrite1hInputTokens: current.CacheWrite1hInputTokens + next.CacheWrite1hInputTokens,
+			CostUSD:                 current.CostUSD + next.CostUSD,
+			ABVariant:               current.ABVariant,
+			ToolCalls:               next.ToolCalls,
+			ToolCallCaptures:        append([]ToolCallCapture(nil), trace.ToolCaptures...),
 		}
 	}
 	if current != nil {

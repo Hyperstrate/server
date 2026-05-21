@@ -86,7 +86,13 @@ func (p *jobProcessor) ProcessJob(ctx context.Context, jobID string) error {
 		return p.failJob(ctx, job, err)
 	}
 
-	costUSD := def.ComputeCostUSD(resp.InputTokens, resp.OutputTokens)
+	costUSD := def.ComputeUsageCostUSD(domain.TokenUsage{
+		InputTokens:             resp.InputTokens,
+		CachedInputTokens:       resp.CachedInputTokens,
+		CacheWriteInputTokens:   resp.CacheWriteInputTokens,
+		CacheWrite1hInputTokens: resp.CacheWrite1hInputTokens,
+		OutputTokens:            resp.OutputTokens,
+	})
 	finished := time.Now()
 	job.Status = domain.JobStatusCompleted
 	job.Result = resp.Content

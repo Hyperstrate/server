@@ -450,13 +450,16 @@ func toInterceptorResponse(i *domain.RouterInterceptor) RouterInterceptorRespons
 
 // DryRunTarget is the cost estimate for one eligible model target.
 type DryRunTarget struct {
-	ModelID                string  `json:"modelId"`
-	ModelDefKey            string  `json:"modelDefKey"`
-	DisplayName            string  `json:"displayName"`
-	Provider               string  `json:"provider"`
-	InputPricePer1MTokens  float64 `json:"inputPricePer1MTokens"`
-	OutputPricePer1MTokens float64 `json:"outputPricePer1MTokens"`
-	EstimatedInputCostUSD  float64 `json:"estimatedInputCostUsd"`
+	ModelID                           string  `json:"modelId"`
+	ModelDefKey                       string  `json:"modelDefKey"`
+	DisplayName                       string  `json:"displayName"`
+	Provider                          string  `json:"provider"`
+	InputPricePer1MTokens             float64 `json:"inputPricePer1MTokens"`
+	CachedInputPricePer1MTokens       float64 `json:"cachedInputPricePer1MTokens,omitempty"`
+	CacheWriteInputPricePer1MTokens   float64 `json:"cacheWriteInputPricePer1MTokens,omitempty"`
+	CacheWrite1hInputPricePer1MTokens float64 `json:"cacheWrite1hInputPricePer1MTokens,omitempty"`
+	OutputPricePer1MTokens            float64 `json:"outputPricePer1MTokens"`
+	EstimatedInputCostUSD             float64 `json:"estimatedInputCostUsd"`
 }
 
 // DryRunResult is returned when ?dryRun=true is passed to an inference endpoint.
@@ -498,19 +501,21 @@ type ToolCallCapture struct {
 
 // RouteInferResult contains the model's response and routing metadata.
 type RouteInferResult struct {
-	Content           string         `json:"content"              validate:"required"`
-	SelectedModelID   string         `json:"selectedModelId"      validate:"required"`
-	SelectedTargetID  string         `json:"selectedTargetId,omitempty"`
-	ModelDefKey       string         `json:"modelDefKey"`
-	Provider          string         `json:"provider"`
-	InputTokens       int64          `json:"inputTokens"`
-	OutputTokens      int64          `json:"outputTokens"`
-	CachedInputTokens int64          `json:"cachedInputTokens,omitempty"`
-	CostUSD           float64        `json:"costUsd"`
-	ABVariant         string         `json:"abVariant,omitempty"`
-	CacheHit          bool           `json:"-"`
-	CacheHitType      string         `json:"-"` // "exact" | "semantic" | ""
-	Steps             []PipelineStep `json:"pipelineSteps,omitempty"`
+	Content                 string         `json:"content"              validate:"required"`
+	SelectedModelID         string         `json:"selectedModelId"      validate:"required"`
+	SelectedTargetID        string         `json:"selectedTargetId,omitempty"`
+	ModelDefKey             string         `json:"modelDefKey"`
+	Provider                string         `json:"provider"`
+	InputTokens             int64          `json:"inputTokens"`
+	OutputTokens            int64          `json:"outputTokens"`
+	CachedInputTokens       int64          `json:"cachedInputTokens,omitempty"`
+	CacheWriteInputTokens   int64          `json:"cacheWriteInputTokens,omitempty"`
+	CacheWrite1hInputTokens int64          `json:"cacheWrite1hInputTokens,omitempty"`
+	CostUSD                 float64        `json:"costUsd"`
+	ABVariant               string         `json:"abVariant,omitempty"`
+	CacheHit                bool           `json:"-"`
+	CacheHitType            string         `json:"-"` // "exact" | "semantic" | ""
+	Steps                   []PipelineStep `json:"pipelineSteps,omitempty"`
 	// ToolCalls is non-nil when the model responded with tool/function calls
 	// instead of text content.
 	ToolCalls        json.RawMessage   `json:"toolCalls,omitempty"`
@@ -522,21 +527,23 @@ type RouteInferResult struct {
 // SelectedModelID, InputTokens, OutputTokens, ModelDefKey, Provider, CostUSD, and
 // ToolCalls are populated on the final (Done) chunk.
 type StreamChunk struct {
-	Delta             string
-	Done              bool
-	Err               error
-	SelectedModelID   string
-	SelectedTargetID  string
-	InputTokens       int64
-	OutputTokens      int64
-	CachedInputTokens int64
-	ModelDefKey       string
-	Provider          string
-	CostUSD           float64
-	ABVariant         string
-	CacheHit          bool
-	CacheHitType      string // "exact" | "semantic" | ""
-	ToolCalls         json.RawMessage
+	Delta                   string
+	Done                    bool
+	Err                     error
+	SelectedModelID         string
+	SelectedTargetID        string
+	InputTokens             int64
+	OutputTokens            int64
+	CachedInputTokens       int64
+	CacheWriteInputTokens   int64
+	CacheWrite1hInputTokens int64
+	ModelDefKey             string
+	Provider                string
+	CostUSD                 float64
+	ABVariant               string
+	CacheHit                bool
+	CacheHitType            string // "exact" | "semantic" | ""
+	ToolCalls               json.RawMessage
 }
 
 // ── Router export / import ────────────────────────────────────────────────────

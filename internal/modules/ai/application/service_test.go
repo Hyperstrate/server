@@ -359,7 +359,7 @@ func TestProcessJob_successEmitsInferenceLogWithCost(t *testing.T) {
 		if got.CachedInputTokens != 40 {
 			t.Fatalf("event cached input tokens = %d, want 40", got.CachedInputTokens)
 		}
-		wantCost := (1000*2.50 + 250*15.00) / 1_000_000
+		wantCost := (960*2.50 + 40*0.25 + 250*15.00) / 1_000_000
 		if math.Abs(got.CostUSD-wantCost) > 0.0000001 {
 			t.Fatalf("event cost = %f, want %f", got.CostUSD, wantCost)
 		}

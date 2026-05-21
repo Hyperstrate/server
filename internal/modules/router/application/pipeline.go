@@ -708,10 +708,14 @@ func (p *featurePipeline) run(
 		inputTokens := inferResult.InputTokens
 		outputTokens := inferResult.OutputTokens
 		cachedInputTokens := inferResult.CachedInputTokens
+		cacheWriteInputTokens := inferResult.CacheWriteInputTokens
+		cacheWrite1hInputTokens := inferResult.CacheWrite1hInputTokens
 		costUSD := inferResult.CostUSD
 		if wasCoalesced {
 			inputTokens = 0
 			outputTokens = 0
+			cacheWriteInputTokens = 0
+			cacheWrite1hInputTokens = 0
 			costUSD = 0
 			if cachedInputTokens <= 0 {
 				cachedInputTokens = estimateCachedInputTokens(fields)
@@ -726,6 +730,9 @@ func (p *featurePipeline) run(
 			if cachedInputTokens > 0 {
 				inferDetail += fmt.Sprintf(" · %d cached", cachedInputTokens)
 			}
+			if cacheWriteInputTokens+cacheWrite1hInputTokens > 0 {
+				inferDetail += fmt.Sprintf(" · %d cache write", cacheWriteInputTokens+cacheWrite1hInputTokens)
+			}
 			if costUSD > 0 {
 				inferDetail += fmt.Sprintf(" · $%.5f", costUSD)
 			}
@@ -736,17 +743,19 @@ func (p *featurePipeline) run(
 		}
 		addStep(PipelineStep{Phase: 6, Kind: "inference", Name: "Model Inference", Outcome: inferOutcome, Detail: inferDetail, Attempts: retryCount + 1}, inferDur)
 		result = &RouteInferResult{
-			Content:           inferResult.Content,
-			SelectedModelID:   target.ModelID,
-			SelectedTargetID:  target.ID,
-			ModelDefKey:       inferResult.ModelDefKey,
-			Provider:          inferResult.Provider,
-			InputTokens:       inputTokens,
-			OutputTokens:      outputTokens,
-			CachedInputTokens: cachedInputTokens,
-			CostUSD:           costUSD,
-			ABVariant:         abVariant,
-			ToolCalls:         inferResult.ToolCalls,
+			Content:                 inferResult.Content,
+			SelectedModelID:         target.ModelID,
+			SelectedTargetID:        target.ID,
+			ModelDefKey:             inferResult.ModelDefKey,
+			Provider:                inferResult.Provider,
+			InputTokens:             inputTokens,
+			OutputTokens:            outputTokens,
+			CachedInputTokens:       cachedInputTokens,
+			CacheWriteInputTokens:   cacheWriteInputTokens,
+			CacheWrite1hInputTokens: cacheWrite1hInputTokens,
+			CostUSD:                 costUSD,
+			ABVariant:               abVariant,
+			ToolCalls:               inferResult.ToolCalls,
 		}
 	}
 	if err != nil {
@@ -1354,17 +1363,19 @@ func (p *featurePipeline) runStream(
 			toSend := chunk
 			if chunk.Done {
 				toSend = StreamChunk{
-					Done:              true,
-					SelectedModelID:   selectedModelID,
-					SelectedTargetID:  selectedTargetID,
-					InputTokens:       chunk.InputTokens,
-					OutputTokens:      chunk.OutputTokens,
-					CachedInputTokens: chunk.CachedInputTokens,
-					ModelDefKey:       chunk.ModelDefKey,
-					Provider:          chunk.Provider,
-					CostUSD:           chunk.CostUSD,
-					ABVariant:         abVariant,
-					ToolCalls:         chunk.ToolCalls,
+					Done:                    true,
+					SelectedModelID:         selectedModelID,
+					SelectedTargetID:        selectedTargetID,
+					InputTokens:             chunk.InputTokens,
+					OutputTokens:            chunk.OutputTokens,
+					CachedInputTokens:       chunk.CachedInputTokens,
+					CacheWriteInputTokens:   chunk.CacheWriteInputTokens,
+					CacheWrite1hInputTokens: chunk.CacheWrite1hInputTokens,
+					ModelDefKey:             chunk.ModelDefKey,
+					Provider:                chunk.Provider,
+					CostUSD:                 chunk.CostUSD,
+					ABVariant:               abVariant,
+					ToolCalls:               chunk.ToolCalls,
 				}
 			}
 			select {

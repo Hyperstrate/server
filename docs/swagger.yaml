@@ -91,6 +91,10 @@ definitions:
     type: object
   hyperstrate_server_internal_modules_ai_application.InferenceResult:
     properties:
+      cacheWrite1hInputTokens:
+        type: integer
+      cacheWriteInputTokens:
+        type: integer
       cachedInputTokens:
         type: integer
       content:
@@ -405,6 +409,12 @@ definitions:
     - JobStatusFailed
   hyperstrate_server_internal_modules_ai_domain.ModelDefinition:
     properties:
+      cacheWrite1hInputPricePer1MTokens:
+        type: number
+      cacheWriteInputPricePer1MTokens:
+        type: number
+      cachedInputPricePer1MTokens:
+        type: number
       capabilities:
         description: Capabilities is a set of feature flags (e.g. "vision", "reasoning",
           "function_calling").
@@ -1667,6 +1677,10 @@ definitions:
     properties:
       abVariant:
         type: string
+      cacheWrite1hInputTokens:
+        type: integer
+      cacheWriteInputTokens:
+        type: integer
       cachedInputTokens:
         type: integer
       content:
@@ -2761,6 +2775,12 @@ definitions:
     properties:
       alias:
         type: string
+      cacheWrite1hInputPricePer1MTokens:
+        type: number
+      cacheWriteInputPricePer1MTokens:
+        type: number
+      cachedInputPricePer1MTokens:
+        type: number
       displayName:
         type: string
       id:

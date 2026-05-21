@@ -63,11 +63,13 @@ type ProxyRequest struct {
 
 // ProxyResponse is what the upstream model returned.
 type ProxyResponse struct {
-	Content           string
-	Raw               map[string]any
-	InputTokens       int64
-	OutputTokens      int64
-	CachedInputTokens int64 // tokens served from provider-side prompt cache
+	Content                 string
+	Raw                     map[string]any
+	InputTokens             int64
+	OutputTokens            int64
+	CachedInputTokens       int64 // tokens served from provider-side prompt cache
+	CacheWriteInputTokens   int64 // tokens written to provider-side prompt cache
+	CacheWrite1hInputTokens int64 // Anthropic 1-hour cache-write tokens, when reported
 	// ToolCalls carries serialised tool/function call objects when the model
 	// responded with a tool_calls turn instead of plain text content.
 	ToolCalls json.RawMessage
@@ -629,7 +631,13 @@ func (s *service) Infer(ctx context.Context, input InferRequest) (*InferenceResu
 		return nil, inferErr
 	}
 
-	costUSD := def.ComputeCostUSD(resp.InputTokens, resp.OutputTokens)
+	costUSD := def.ComputeUsageCostUSD(domain.TokenUsage{
+		InputTokens:             resp.InputTokens,
+		CachedInputTokens:       resp.CachedInputTokens,
+		CacheWriteInputTokens:   resp.CacheWriteInputTokens,
+		CacheWrite1hInputTokens: resp.CacheWrite1hInputTokens,
+		OutputTokens:            resp.OutputTokens,
+	})
 	if shouldLog(ctx) {
 		s.inferBus.Emit(InferenceLoggedEvent{
 			OrgID:             authDomain.OrgIDFromContext(ctx),
@@ -647,15 +655,17 @@ func (s *service) Infer(ctx context.Context, input InferRequest) (*InferenceResu
 	}
 
 	return &InferenceResult{
-		Content:           resp.Content,
-		Raw:               resp.Raw,
-		ModelDefKey:       model.ModelDefinitionKey,
-		Provider:          string(def.Provider),
-		InputTokens:       resp.InputTokens,
-		OutputTokens:      resp.OutputTokens,
-		CachedInputTokens: resp.CachedInputTokens,
-		CostUSD:           costUSD,
-		ToolCalls:         resp.ToolCalls,
+		Content:                 resp.Content,
+		Raw:                     resp.Raw,
+		ModelDefKey:             model.ModelDefinitionKey,
+		Provider:                string(def.Provider),
+		InputTokens:             resp.InputTokens,
+		OutputTokens:            resp.OutputTokens,
+		CachedInputTokens:       resp.CachedInputTokens,
+		CacheWriteInputTokens:   resp.CacheWriteInputTokens,
+		CacheWrite1hInputTokens: resp.CacheWrite1hInputTokens,
+		CostUSD:                 costUSD,
+		ToolCalls:               resp.ToolCalls,
 	}, nil
 }
 
@@ -740,13 +750,15 @@ func (s *service) InferStream(ctx context.Context, input InferRequest) (<-chan S
 		go func() {
 			defer close(out)
 			var lastErr error
-			var inputTokens, outputTokens, cachedInputTokens int64
+			var inputTokens, outputTokens, cachedInputTokens, cacheWriteInputTokens, cacheWrite1hInputTokens int64
 		loop:
 			for chunk := range upstream {
 				if chunk.Done {
 					inputTokens = chunk.InputTokens
 					outputTokens = chunk.OutputTokens
 					cachedInputTokens = chunk.CachedInputTokens
+					cacheWriteInputTokens = chunk.CacheWriteInputTokens
+					cacheWrite1hInputTokens = chunk.CacheWrite1hInputTokens
 				}
 				if chunk.Err != nil {
 					lastErr = chunk.Err
@@ -758,7 +770,13 @@ func (s *service) InferStream(ctx context.Context, input InferRequest) (<-chan S
 					break loop
 				}
 			}
-			costUSD := def.ComputeCostUSD(inputTokens, outputTokens)
+			costUSD := def.ComputeUsageCostUSD(domain.TokenUsage{
+				InputTokens:             inputTokens,
+				CachedInputTokens:       cachedInputTokens,
+				CacheWriteInputTokens:   cacheWriteInputTokens,
+				CacheWrite1hInputTokens: cacheWrite1hInputTokens,
+				OutputTokens:            outputTokens,
+			})
 			ev := InferenceLoggedEvent{
 				OrgID:             authDomain.OrgIDFromContext(ctx),
 				ModelID:           input.ModelID,
@@ -788,7 +806,7 @@ func (s *service) InferStream(ctx context.Context, input InferRequest) (<-chan S
 		defer close(out)
 		var buf []byte
 		var lastErr error
-		var inputTokens, outputTokens, cachedInputTokens int64
+		var inputTokens, outputTokens, cachedInputTokens, cacheWriteInputTokens, cacheWrite1hInputTokens int64
 	loop:
 		for chunk := range upstream {
 			if chunk.Delta != "" {
@@ -798,6 +816,8 @@ func (s *service) InferStream(ctx context.Context, input InferRequest) (<-chan S
 				inputTokens = chunk.InputTokens
 				outputTokens = chunk.OutputTokens
 				cachedInputTokens = chunk.CachedInputTokens
+				cacheWriteInputTokens = chunk.CacheWriteInputTokens
+				cacheWrite1hInputTokens = chunk.CacheWrite1hInputTokens
 			}
 			if chunk.Err != nil {
 				lastErr = chunk.Err
@@ -814,6 +834,8 @@ func (s *service) InferStream(ctx context.Context, input InferRequest) (<-chan S
 						inputTokens = rem.InputTokens
 						outputTokens = rem.OutputTokens
 						cachedInputTokens = rem.CachedInputTokens
+						cacheWriteInputTokens = rem.CacheWriteInputTokens
+						cacheWrite1hInputTokens = rem.CacheWrite1hInputTokens
 					}
 				}
 				break loop
@@ -833,7 +855,13 @@ func (s *service) InferStream(ctx context.Context, input InferRequest) (<-chan S
 			}
 		}
 		if shouldLog(ctx) {
-			costUSD := def.ComputeCostUSD(inputTokens, outputTokens)
+			costUSD := def.ComputeUsageCostUSD(domain.TokenUsage{
+				InputTokens:             inputTokens,
+				CachedInputTokens:       cachedInputTokens,
+				CacheWriteInputTokens:   cacheWriteInputTokens,
+				CacheWrite1hInputTokens: cacheWrite1hInputTokens,
+				OutputTokens:            outputTokens,
+			})
 			ev := InferenceLoggedEvent{
 				OrgID:             authDomain.OrgIDFromContext(ctx),
 				ModelID:           input.ModelID,

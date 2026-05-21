@@ -6888,6 +6888,12 @@ const docTemplate = `{
                 "content"
             ],
             "properties": {
+                "cacheWrite1hInputTokens": {
+                    "type": "integer"
+                },
+                "cacheWriteInputTokens": {
+                    "type": "integer"
+                },
                 "cachedInputTokens": {
                     "type": "integer"
                 },
@@ -7343,6 +7349,15 @@ const docTemplate = `{
                 "provider"
             ],
             "properties": {
+                "cacheWrite1hInputPricePer1MTokens": {
+                    "type": "number"
+                },
+                "cacheWriteInputPricePer1MTokens": {
+                    "type": "number"
+                },
+                "cachedInputPricePer1MTokens": {
+                    "type": "number"
+                },
                 "capabilities": {
                     "description": "Capabilities is a set of feature flags (e.g. \"vision\", \"reasoning\", \"function_calling\").",
                     "type": "array",
@@ -9185,6 +9200,12 @@ const docTemplate = `{
                 "abVariant": {
                     "type": "string"
                 },
+                "cacheWrite1hInputTokens": {
+                    "type": "integer"
+                },
+                "cacheWriteInputTokens": {
+                    "type": "integer"
+                },
                 "cachedInputTokens": {
                     "type": "integer"
                 },
@@ -10740,6 +10761,15 @@ const docTemplate = `{
             "properties": {
                 "alias": {
                     "type": "string"
+                },
+                "cacheWrite1hInputPricePer1MTokens": {
+                    "type": "number"
+                },
+                "cacheWriteInputPricePer1MTokens": {
+                    "type": "number"
+                },
+                "cachedInputPricePer1MTokens": {
+                    "type": "number"
                 },
                 "displayName": {
                     "type": "string"

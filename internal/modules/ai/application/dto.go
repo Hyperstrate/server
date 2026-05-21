@@ -131,15 +131,17 @@ type InferRequest struct {
 
 // InferenceResult is the outcome of a completed synchronous inference.
 type InferenceResult struct {
-	Content           string          `json:"content"                validate:"required"`
-	Raw               map[string]any  `json:"raw,omitempty"`
-	ModelDefKey       string          `json:"modelDefKey,omitempty"`
-	Provider          string          `json:"provider,omitempty"`
-	InputTokens       int64           `json:"inputTokens,omitempty"`
-	OutputTokens      int64           `json:"outputTokens,omitempty"`
-	CachedInputTokens int64           `json:"cachedInputTokens,omitempty"`
-	CostUSD           float64         `json:"costUsd,omitempty"`
-	ToolCalls         json.RawMessage `json:"toolCalls,omitempty"`
+	Content                 string          `json:"content"                validate:"required"`
+	Raw                     map[string]any  `json:"raw,omitempty"`
+	ModelDefKey             string          `json:"modelDefKey,omitempty"`
+	Provider                string          `json:"provider,omitempty"`
+	InputTokens             int64           `json:"inputTokens,omitempty"`
+	OutputTokens            int64           `json:"outputTokens,omitempty"`
+	CachedInputTokens       int64           `json:"cachedInputTokens,omitempty"`
+	CacheWriteInputTokens   int64           `json:"cacheWriteInputTokens,omitempty"`
+	CacheWrite1hInputTokens int64           `json:"cacheWrite1hInputTokens,omitempty"`
+	CostUSD                 float64         `json:"costUsd,omitempty"`
+	ToolCalls               json.RawMessage `json:"toolCalls,omitempty"`
 }
 
 // --- Job DTOs ---
@@ -156,14 +158,16 @@ type SubmitJobRequest struct {
 
 // StreamChunk is a single content delta yielded by a streaming inference response.
 // The channel returned by InferStream emits these until Done is true or Err is set.
-// InputTokens, OutputTokens, CachedInputTokens, and ToolCalls are non-zero only on the Done chunk.
+// InputTokens, OutputTokens, prompt-cache token counts, and ToolCalls are non-zero only on the Done chunk.
 type StreamChunk struct {
-	Delta             string
-	Done              bool
-	Err               error
-	InputTokens       int64
-	OutputTokens      int64
-	CachedInputTokens int64
+	Delta                   string
+	Done                    bool
+	Err                     error
+	InputTokens             int64
+	OutputTokens            int64
+	CachedInputTokens       int64
+	CacheWriteInputTokens   int64
+	CacheWrite1hInputTokens int64
 	// ToolCalls is populated on the Done chunk when the model responded with
 	// tool/function calls instead of text content.
 	ToolCalls json.RawMessage

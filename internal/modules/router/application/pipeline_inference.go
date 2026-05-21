@@ -42,16 +42,18 @@ func (p *featurePipeline) inferWithFallback(
 		addStep(PipelineStep{Phase: 6, Kind: "inference", Name: "Model Inference", Outcome: "success",
 			Detail: fmt.Sprintf("fallback winner: %s", healthy[i].ModelID)}, time.Since(t0))
 		return &RouteInferResult{
-			Content:           r.Content,
-			SelectedModelID:   healthy[i].ModelID,
-			SelectedTargetID:  healthy[i].ID,
-			ModelDefKey:       r.ModelDefKey,
-			Provider:          r.Provider,
-			InputTokens:       r.InputTokens,
-			OutputTokens:      r.OutputTokens,
-			CachedInputTokens: r.CachedInputTokens,
-			CostUSD:           r.CostUSD,
-			ToolCalls:         r.ToolCalls,
+			Content:                 r.Content,
+			SelectedModelID:         healthy[i].ModelID,
+			SelectedTargetID:        healthy[i].ID,
+			ModelDefKey:             r.ModelDefKey,
+			Provider:                r.Provider,
+			InputTokens:             r.InputTokens,
+			OutputTokens:            r.OutputTokens,
+			CachedInputTokens:       r.CachedInputTokens,
+			CacheWriteInputTokens:   r.CacheWriteInputTokens,
+			CacheWrite1hInputTokens: r.CacheWrite1hInputTokens,
+			CostUSD:                 r.CostUSD,
+			ToolCalls:               r.ToolCalls,
 		}, nil
 	}
 	return nil, domain.ErrAllTargetsFailed

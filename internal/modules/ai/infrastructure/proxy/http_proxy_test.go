@@ -503,6 +503,42 @@ func TestKlingJWT_signatureIsValidHMACSHA256(t *testing.T) {
 	}
 }
 
+func TestExtractTokenUsage_anthropicIncludesCacheWriteTokens(t *testing.T) {
+	raw := map[string]any{
+		"usage": map[string]any{
+			"input_tokens":                float64(50),
+			"output_tokens":               float64(20),
+			"cache_read_input_tokens":     float64(1_800),
+			"cache_creation_input_tokens": float64(248),
+		},
+	}
+
+	input, output, cached, cacheWrite, cacheWrite1h := extractTokenUsage(domain.ProviderAnthropic, raw)
+	if input != 2_098 || output != 20 || cached != 1_800 || cacheWrite != 248 || cacheWrite1h != 0 {
+		t.Fatalf("usage = input:%d output:%d cached:%d cacheWrite:%d cacheWrite1h:%d", input, output, cached, cacheWrite, cacheWrite1h)
+	}
+}
+
+func TestExtractTokenUsage_anthropicSplitsCacheCreationTTL(t *testing.T) {
+	raw := map[string]any{
+		"usage": map[string]any{
+			"input_tokens":                float64(8),
+			"output_tokens":               float64(0),
+			"cache_read_input_tokens":     float64(0),
+			"cache_creation_input_tokens": float64(5_120),
+			"cache_creation": map[string]any{
+				"ephemeral_5m_input_tokens": float64(4_096),
+				"ephemeral_1h_input_tokens": float64(1_024),
+			},
+		},
+	}
+
+	input, output, cached, cacheWrite, cacheWrite1h := extractTokenUsage(domain.ProviderAnthropic, raw)
+	if input != 5_128 || output != 0 || cached != 0 || cacheWrite != 4_096 || cacheWrite1h != 1_024 {
+		t.Fatalf("usage = input:%d output:%d cached:%d cacheWrite:%d cacheWrite1h:%d", input, output, cached, cacheWrite, cacheWrite1h)
+	}
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 func assertMessage(t *testing.T, msg any, wantRole, wantContent string) {

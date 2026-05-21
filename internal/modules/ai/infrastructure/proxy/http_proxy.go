@@ -1093,18 +1093,27 @@ func (p *HTTPProxy) parseResponse(provider domain.Provider, body []byte) (*appli
 		content = string(body)
 	}
 
-	in, out, cached := extractTokenUsage(provider, raw)
-	return &application.ProxyResponse{Content: content, Raw: raw, InputTokens: in, OutputTokens: out, CachedInputTokens: cached, ToolCalls: toolCalls}, nil
+	in, out, cached, cacheWrite, cacheWrite1h := extractTokenUsage(provider, raw)
+	return &application.ProxyResponse{
+		Content:                 content,
+		Raw:                     raw,
+		InputTokens:             in,
+		OutputTokens:            out,
+		CachedInputTokens:       cached,
+		CacheWriteInputTokens:   cacheWrite,
+		CacheWrite1hInputTokens: cacheWrite1h,
+		ToolCalls:               toolCalls,
+	}, nil
 }
 
 // extractTokenUsage pulls prompt/completion/cache token counts from provider responses.
-func extractTokenUsage(provider domain.Provider, raw map[string]any) (inputTokens, outputTokens, cachedInputTokens int64) {
+func extractTokenUsage(provider domain.Provider, raw map[string]any) (inputTokens, outputTokens, cachedInputTokens, cacheWriteInputTokens, cacheWrite1hInputTokens int64) {
 	usage, _ := raw["usage"].(map[string]any)
 	switch provider {
 	case domain.ProviderOpenAi, domain.ProviderMistral, domain.ProviderVLLM, domain.ProviderLocalAI,
 		domain.ProviderGroq, domain.ProviderAzureOpenAI:
 		if usage == nil {
-			return 0, 0, 0
+			return 0, 0, 0, 0, 0
 		}
 		// {"usage":{"prompt_tokens":N,"completion_tokens":M,"prompt_tokens_details":{"cached_tokens":K}}}
 		inputTokens = int64(toInt(usage["prompt_tokens"]))
@@ -1114,12 +1123,21 @@ func extractTokenUsage(provider domain.Provider, raw map[string]any) (inputToken
 		}
 	case domain.ProviderAnthropic:
 		if usage == nil {
-			return 0, 0, 0
+			return 0, 0, 0, 0, 0
 		}
 		// {"usage":{"input_tokens":N,"output_tokens":M,"cache_read_input_tokens":K,"cache_creation_input_tokens":J}}
-		inputTokens = int64(toInt(usage["input_tokens"]))
+		regularInputTokens := int64(toInt(usage["input_tokens"]))
 		outputTokens = int64(toInt(usage["output_tokens"]))
 		cachedInputTokens = int64(toInt(usage["cache_read_input_tokens"]))
+		cacheWriteTotal := int64(toInt(usage["cache_creation_input_tokens"]))
+		if cacheCreation, ok := usage["cache_creation"].(map[string]any); ok {
+			cacheWriteInputTokens = int64(toInt(cacheCreation["ephemeral_5m_input_tokens"]))
+			cacheWrite1hInputTokens = int64(toInt(cacheCreation["ephemeral_1h_input_tokens"]))
+		}
+		if cacheWriteInputTokens+cacheWrite1hInputTokens == 0 {
+			cacheWriteInputTokens = cacheWriteTotal
+		}
+		inputTokens = regularInputTokens + cachedInputTokens + cacheWriteInputTokens + cacheWrite1hInputTokens
 	case domain.ProviderGemini:
 		// {"usageMetadata":{"promptTokenCount":N,"candidatesTokenCount":M}}
 		meta, _ := raw["usageMetadata"].(map[string]any)
@@ -1133,14 +1151,14 @@ func extractTokenUsage(provider domain.Provider, raw map[string]any) (inputToken
 		outputTokens = int64(toInt(raw["eval_count"]))
 	case domain.ProviderBedrock:
 		if usage == nil {
-			return 0, 0, 0
+			return 0, 0, 0, 0, 0
 		}
 		// {"usage":{"inputTokens":N,"outputTokens":M,"cacheReadInputTokensCount":K}}
 		inputTokens = int64(toInt(usage["inputTokens"]))
 		outputTokens = int64(toInt(usage["outputTokens"]))
 		cachedInputTokens = int64(toInt(usage["cacheReadInputTokensCount"]))
 	}
-	return inputTokens, outputTokens, cachedInputTokens
+	return inputTokens, outputTokens, cachedInputTokens, cacheWriteInputTokens, cacheWrite1hInputTokens
 }
 
 func toInt(v any) int {
@@ -1387,7 +1405,7 @@ func (p *HTTPProxy) streamAnthropic(
 		defer close(ch)
 		defer resp.Body.Close()
 
-		var inputTokens, outputTokens, cachedInputTokens int64
+		var inputTokens, outputTokens, cachedInputTokens, cacheWriteInputTokens, cacheWrite1hInputTokens int64
 		type toolUseAcc struct {
 			ID      string
 			Name    string
@@ -1407,8 +1425,13 @@ func (p *HTTPProxy) streamAnthropic(
 				Index   int    `json:"index"`
 				Message *struct {
 					Usage *struct {
-						InputTokens          int `json:"input_tokens"`
-						CacheReadInputTokens int `json:"cache_read_input_tokens"`
+						InputTokens              int `json:"input_tokens"`
+						CacheReadInputTokens     int `json:"cache_read_input_tokens"`
+						CacheCreationInputTokens int `json:"cache_creation_input_tokens"`
+						CacheCreation            *struct {
+							Ephemeral5mInputTokens int `json:"ephemeral_5m_input_tokens"`
+							Ephemeral1hInputTokens int `json:"ephemeral_1h_input_tokens"`
+						} `json:"cache_creation"`
 					} `json:"usage"`
 				} `json:"message"`
 				ContentBlock *struct {
@@ -1431,8 +1454,16 @@ func (p *HTTPProxy) streamAnthropic(
 			switch event.Type {
 			case "message_start":
 				if event.Message != nil && event.Message.Usage != nil {
-					inputTokens = int64(event.Message.Usage.InputTokens)
 					cachedInputTokens = int64(event.Message.Usage.CacheReadInputTokens)
+					cacheWriteTotal := int64(event.Message.Usage.CacheCreationInputTokens)
+					if event.Message.Usage.CacheCreation != nil {
+						cacheWriteInputTokens = int64(event.Message.Usage.CacheCreation.Ephemeral5mInputTokens)
+						cacheWrite1hInputTokens = int64(event.Message.Usage.CacheCreation.Ephemeral1hInputTokens)
+					}
+					if cacheWriteInputTokens+cacheWrite1hInputTokens == 0 {
+						cacheWriteInputTokens = cacheWriteTotal
+					}
+					inputTokens = int64(event.Message.Usage.InputTokens) + cachedInputTokens + cacheWriteInputTokens + cacheWrite1hInputTokens
 				}
 			case "message_delta":
 				if event.Usage != nil {
@@ -1462,7 +1493,14 @@ func (p *HTTPProxy) streamAnthropic(
 					acc.Input.WriteString(event.Delta.PartialJSON)
 				}
 			case "message_stop":
-				done := application.StreamChunk{Done: true, InputTokens: inputTokens, OutputTokens: outputTokens, CachedInputTokens: cachedInputTokens}
+				done := application.StreamChunk{
+					Done:                    true,
+					InputTokens:             inputTokens,
+					OutputTokens:            outputTokens,
+					CachedInputTokens:       cachedInputTokens,
+					CacheWriteInputTokens:   cacheWriteInputTokens,
+					CacheWrite1hInputTokens: cacheWrite1hInputTokens,
+				}
 				if len(toolUses) > 0 {
 					calls := make([]canonicalToolCall, 0, len(toolUses))
 					for i := 0; i < len(toolUses); i++ {
@@ -1570,11 +1608,13 @@ func (p *HTTPProxy) streamWrapped(
 		ch <- application.StreamChunk{Delta: resp.Content}
 	}
 	ch <- application.StreamChunk{
-		Done:              true,
-		InputTokens:       resp.InputTokens,
-		OutputTokens:      resp.OutputTokens,
-		CachedInputTokens: resp.CachedInputTokens,
-		ToolCalls:         resp.ToolCalls,
+		Done:                    true,
+		InputTokens:             resp.InputTokens,
+		OutputTokens:            resp.OutputTokens,
+		CachedInputTokens:       resp.CachedInputTokens,
+		CacheWriteInputTokens:   resp.CacheWriteInputTokens,
+		CacheWrite1hInputTokens: resp.CacheWrite1hInputTokens,
+		ToolCalls:               resp.ToolCalls,
 	}
 	close(ch)
 	return ch, nil

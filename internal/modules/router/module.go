@@ -73,13 +73,16 @@ func newModelResolverFunc(svc aiApplication.Service) httptransport.ModelResolver
 		}
 		def, _ := aiDomain.FindModelDefinition(m.ModelDefinitionKey)
 		return &httptransport.ModelRef{
-			ID:                     m.ID,
-			Alias:                  m.Alias,
-			DisplayName:            def.DisplayName,
-			Provider:               string(def.Provider),
-			ModelDefKey:            m.ModelDefinitionKey,
-			InputPricePer1MTokens:  def.InputPricePer1MTokens,
-			OutputPricePer1MTokens: def.OutputPricePer1MTokens,
+			ID:                                m.ID,
+			Alias:                             m.Alias,
+			DisplayName:                       def.DisplayName,
+			Provider:                          string(def.Provider),
+			ModelDefKey:                       m.ModelDefinitionKey,
+			InputPricePer1MTokens:             def.InputPricePer1MTokens,
+			CachedInputPricePer1MTokens:       def.CachedInputPricePer1MTokens,
+			CacheWriteInputPricePer1MTokens:   def.CacheWriteInputPricePer1MTokens,
+			CacheWrite1hInputPricePer1MTokens: def.CacheWrite1hInputPricePer1MTokens,
+			OutputPricePer1MTokens:            def.OutputPricePer1MTokens,
 		}
 	}
 }
@@ -209,14 +212,16 @@ func (a *aiServiceAdapter) InferModel(ctx context.Context, modelID string, field
 		return nil, fmt.Errorf("router inference: %w", err)
 	}
 	return &application.ModelInferResult{
-		Content:           result.Content,
-		ModelDefKey:       result.ModelDefKey,
-		Provider:          result.Provider,
-		InputTokens:       result.InputTokens,
-		OutputTokens:      result.OutputTokens,
-		CachedInputTokens: result.CachedInputTokens,
-		CostUSD:           result.CostUSD,
-		ToolCalls:         result.ToolCalls,
+		Content:                 result.Content,
+		ModelDefKey:             result.ModelDefKey,
+		Provider:                result.Provider,
+		InputTokens:             result.InputTokens,
+		OutputTokens:            result.OutputTokens,
+		CachedInputTokens:       result.CachedInputTokens,
+		CacheWriteInputTokens:   result.CacheWriteInputTokens,
+		CacheWrite1hInputTokens: result.CacheWrite1hInputTokens,
+		CostUSD:                 result.CostUSD,
+		ToolCalls:               result.ToolCalls,
 	}, nil
 }
 
@@ -240,20 +245,28 @@ func (a *aiServiceAdapter) InferModelStream(ctx context.Context, modelID string,
 		defer close(out)
 		for chunk := range upstream {
 			toSend := application.StreamChunk{
-				Delta:             chunk.Delta,
-				Done:              chunk.Done,
-				Err:               chunk.Err,
-				InputTokens:       chunk.InputTokens,
-				OutputTokens:      chunk.OutputTokens,
-				CachedInputTokens: chunk.CachedInputTokens,
-				ToolCalls:         chunk.ToolCalls,
+				Delta:                   chunk.Delta,
+				Done:                    chunk.Done,
+				Err:                     chunk.Err,
+				InputTokens:             chunk.InputTokens,
+				OutputTokens:            chunk.OutputTokens,
+				CachedInputTokens:       chunk.CachedInputTokens,
+				CacheWriteInputTokens:   chunk.CacheWriteInputTokens,
+				CacheWrite1hInputTokens: chunk.CacheWrite1hInputTokens,
+				ToolCalls:               chunk.ToolCalls,
 			}
 			if chunk.Done && model != nil {
 				def, ok := aiDomain.FindModelDefinition(model.ModelDefinitionKey)
 				if ok {
 					toSend.ModelDefKey = model.ModelDefinitionKey
 					toSend.Provider = string(def.Provider)
-					toSend.CostUSD = def.ComputeCostUSD(chunk.InputTokens, chunk.OutputTokens)
+					toSend.CostUSD = def.ComputeUsageCostUSD(aiDomain.TokenUsage{
+						InputTokens:             chunk.InputTokens,
+						CachedInputTokens:       chunk.CachedInputTokens,
+						CacheWriteInputTokens:   chunk.CacheWriteInputTokens,
+						CacheWrite1hInputTokens: chunk.CacheWrite1hInputTokens,
+						OutputTokens:            chunk.OutputTokens,
+					})
 				}
 			}
 			select {

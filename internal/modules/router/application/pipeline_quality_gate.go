@@ -67,15 +67,18 @@ func (p *featurePipeline) runQualityGate(
 			return result, true, nil // retry failed, return original
 		}
 		return &RouteInferResult{
-			Content:         retried.Content,
-			SelectedModelID: targetID,
-			ModelDefKey:     retried.ModelDefKey,
-			Provider:        retried.Provider,
-			InputTokens:     result.InputTokens + retried.InputTokens,
-			OutputTokens:    result.OutputTokens + retried.OutputTokens,
-			CostUSD:         result.CostUSD + retried.CostUSD,
-			ABVariant:       result.ABVariant,
-			ToolCalls:       retried.ToolCalls,
+			Content:                 retried.Content,
+			SelectedModelID:         targetID,
+			ModelDefKey:             retried.ModelDefKey,
+			Provider:                retried.Provider,
+			InputTokens:             result.InputTokens + retried.InputTokens,
+			OutputTokens:            result.OutputTokens + retried.OutputTokens,
+			CachedInputTokens:       result.CachedInputTokens + retried.CachedInputTokens,
+			CacheWriteInputTokens:   result.CacheWriteInputTokens + retried.CacheWriteInputTokens,
+			CacheWrite1hInputTokens: result.CacheWrite1hInputTokens + retried.CacheWrite1hInputTokens,
+			CostUSD:                 result.CostUSD + retried.CostUSD,
+			ABVariant:               result.ABVariant,
+			ToolCalls:               retried.ToolCalls,
 		}, true, nil
 	case "error":
 		return nil, true, fmt.Errorf("%w (score %.0f/10 < %.0f)", domain.ErrLowQuality, score, minScore)

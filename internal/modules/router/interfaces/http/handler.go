@@ -25,13 +25,16 @@ import (
 
 // ModelRef carries enriched model display info alongside the raw model ID.
 type ModelRef struct {
-	ID                     string  `json:"id"`
-	Alias                  string  `json:"alias,omitempty"`
-	DisplayName            string  `json:"displayName"`
-	Provider               string  `json:"provider"`
-	ModelDefKey            string  `json:"modelDefKey"`
-	InputPricePer1MTokens  float64 `json:"inputPricePer1MTokens"`
-	OutputPricePer1MTokens float64 `json:"outputPricePer1MTokens"`
+	ID                                string  `json:"id"`
+	Alias                             string  `json:"alias,omitempty"`
+	DisplayName                       string  `json:"displayName"`
+	Provider                          string  `json:"provider"`
+	ModelDefKey                       string  `json:"modelDefKey"`
+	InputPricePer1MTokens             float64 `json:"inputPricePer1MTokens"`
+	CachedInputPricePer1MTokens       float64 `json:"cachedInputPricePer1MTokens,omitempty"`
+	CacheWriteInputPricePer1MTokens   float64 `json:"cacheWriteInputPricePer1MTokens,omitempty"`
+	CacheWrite1hInputPricePer1MTokens float64 `json:"cacheWrite1hInputPricePer1MTokens,omitempty"`
+	OutputPricePer1MTokens            float64 `json:"outputPricePer1MTokens"`
 }
 
 // ModelResolverFunc returns a ModelRef for a given registered model ID.
@@ -1007,13 +1010,16 @@ func (h *Handler) handleDryRun(c *gin.Context, routerID, promptText string) {
 		}
 		estimated := float64(inputTok) * ref.InputPricePer1MTokens / 1_000_000
 		dryTargets = append(dryTargets, application.DryRunTarget{
-			ModelID:                t.ModelID,
-			ModelDefKey:            ref.ModelDefKey,
-			DisplayName:            ref.DisplayName,
-			Provider:               ref.Provider,
-			InputPricePer1MTokens:  ref.InputPricePer1MTokens,
-			OutputPricePer1MTokens: ref.OutputPricePer1MTokens,
-			EstimatedInputCostUSD:  estimated,
+			ModelID:                           t.ModelID,
+			ModelDefKey:                       ref.ModelDefKey,
+			DisplayName:                       ref.DisplayName,
+			Provider:                          ref.Provider,
+			InputPricePer1MTokens:             ref.InputPricePer1MTokens,
+			CachedInputPricePer1MTokens:       ref.CachedInputPricePer1MTokens,
+			CacheWriteInputPricePer1MTokens:   ref.CacheWriteInputPricePer1MTokens,
+			CacheWrite1hInputPricePer1MTokens: ref.CacheWrite1hInputPricePer1MTokens,
+			OutputPricePer1MTokens:            ref.OutputPricePer1MTokens,
+			EstimatedInputCostUSD:             estimated,
 		})
 	}
 
