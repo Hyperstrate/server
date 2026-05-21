@@ -241,6 +241,7 @@ flowchart LR
     S --> D[(SQLite dev<br/>PostgreSQL prod)]
     S --> Q[SQS / Async Workers]
     S --> M[MCP Servers / Tools]
+```
 
 ## Development
 
