@@ -59,18 +59,47 @@ Use it when you want to:
 
 ## How Hyperstrate Compares
 
-Hyperstrate overlaps with AI gateways, hosted model routers, and LLM observability tools, but it is built around owning the traffic path and making routing policy a first-class runtime object.
+Most tools in this space are strong in one layer: model access, gateway proxying, observability, or API infrastructure. Hyperstrate is for teams that want the AI gateway itself to be self-hosted, inspectable, and operated through a first-party UI.
 
-| Compared With | Good Fit Elsewhere | Hyperstrate Difference |
-| --- | --- | --- |
-| LiteLLM | Drop-in OpenAI-compatible proxying, provider normalization, virtual keys, and spend tracking | Adds a first-party visual control plane, pipeline features, interceptors, evals, team governance, and request traces in one self-hosted server |
-| Portkey or Helicone | Managed AI gateway and observability platforms with routing, caching, logging, and guardrail features | Keeps the gateway, database, credentials, policy, and logs in infrastructure you control, with the UI and API designed as one open-source product |
-| OpenRouter | Hosted access to many models through one account and one API | Uses your own provider accounts, custom/self-hosted models, local policy, tenant budgets, virtual keys, and internal data-retention rules |
-| Langfuse or LangSmith | Deep tracing, prompt management, datasets, experiments, and application-level evaluation workflows | Sits directly in the inference path, so routing, safety, budgets, retries, fallbacks, and access control execute before and during the model call |
-| Kong, Envoy, or cloud API gateways | General-purpose API traffic management, plugins, rate limits, auth, and fleet operations | Provides LLM-native concepts: model catalog, provider keys, token/cost budgets, prompt-aware traces, router evals, virtual keys, MCP tools, and SDK-compatible AI proxy routes |
-| Direct provider SDKs | Small apps with one or two providers and simple operational needs | Centralizes provider changes, policy rollout, cost controls, observability, and fallback logic without rewriting every application |
+```text
+Application code / SDKs
+        |
+        v
+Hyperstrate Server
+        |
+        +-- Routing: weights, fallbacks, retries, budgets, rate limits
+        +-- Policy: safety interceptors, PII handling, team access
+        +-- Operations: virtual keys, traces, logs, evals, prompts, MCP
+        |
+        v
+OpenAI / Anthropic / Gemini / Bedrock / Ollama / vLLM / custom providers
+```
 
-Hyperstrate is not a replacement for every tool above. It can sit beside observability platforms, existing API gateways, or hosted model marketplaces when those are already part of your stack; its job is to make the AI gateway itself inspectable, governable, and self-hosted.
+Legend: `built-in` means first-class product surface, `partial` means possible but narrower, `external` means you usually wire another tool or custom code, and `hosted` means the main control point lives outside your infrastructure.
+
+| Capability | Direct SDKs | OpenRouter | LiteLLM | Langfuse / LangSmith | Portkey / Helicone | Hyperstrate |
+| --- | --- | --- | --- | --- | --- | --- |
+| One API for many models | external | built-in | built-in | not focus | built-in | built-in |
+| Bring your own provider keys | app code | partial | built-in | external | partial | built-in |
+| Self-hosted/private model targets | app code | partial | built-in | external | partial | built-in |
+| Runtime routing policy | app code | partial | built-in | not focus | built-in | built-in |
+| Visual router and policy builder | no | partial | partial | not focus | partial | built-in |
+| Orgs, teams, virtual keys, budgets | app code | partial | built-in | partial | built-in | built-in |
+| Traces tied to routing decisions | external | partial | partial | app traces | built-in | built-in |
+| Prompt and eval workflows beside the gateway | external | no | partial | built-in | partial | built-in |
+| Own the gateway, database, logs, and config | app owned | hosted | built-in | varies | varies | built-in |
+
+### When To Choose What
+
+| Choose | When It Is The Better Fit |
+| --- | --- |
+| Direct provider SDKs | You have one app, one or two providers, and do not need shared policy or tenant governance yet |
+| OpenRouter | You want fast hosted access to many public models through one account and do not need to own provider credentials or logs |
+| LiteLLM | You mainly need an OpenAI-compatible proxy, provider normalization, virtual keys, and spend controls |
+| Langfuse or LangSmith | Your main problem is application tracing, prompt iteration, datasets, or offline/online eval workflows |
+| Portkey or Helicone | You want a managed gateway and observability product with hosted operations and vendor-managed workflow |
+| Kong, Envoy, or cloud gateways | You are standardizing all HTTP traffic through general API infrastructure and can add AI behavior with plugins or custom services |
+| Hyperstrate | You want routing, policy, provider credentials, access control, traces, prompts, evals, and team operations in one self-hosted AI gateway |
 
 ## Product Surface
 
