@@ -209,6 +209,39 @@ curl http://localhost:8090/proxy/router/<router-id>/v1/chat/completions \
 | Self-hosted | Ollama, vLLM, LocalAI, or any OpenAI-compatible endpoint |
 | Media and custom | Kling video generation and custom HTTP providers |
 
+## Architecture
+
+```mermaid
+flowchart LR
+    %% Users and apps
+    A[Applications / SDKs] -->|OpenAI / Anthropic compatible API| S[Hyperstrate Server]
+    U[Admins / Teams] -->|Configure & monitor| C[Hyperstrate Client]
+
+    %% Client to server
+    C -->|REST API / OpenAPI client| S
+
+    %% Server core
+    S --> R[Router Pipelines]
+    R --> I[Interceptors<br/>Safety · PII · A/B tests · Team budgets]
+    R --> F[Pipeline Features<br/>Caching · Retry · Fallback · Rate limits · Budgets · MCP tools]
+    R --> T[Targets / Provider Models]
+
+    %% Providers
+    T --> P1[OpenAI]
+    T --> P2[Anthropic]
+    T --> P3[Gemini / Mistral / Groq / Cohere]
+    T --> P4[Bedrock / Azure OpenAI]
+    T --> P5[Ollama / vLLM / LocalAI]
+    T --> P6[Custom HTTP Providers]
+
+    %% Governance and data
+    S --> G[Governance<br/>API keys · Virtual keys · Teams · OIDC groups]
+    S --> O[Observability<br/>Logs · Traces · Analytics · Metrics · Replay]
+    S --> E[Prompts & Evals<br/>Templates · Versions · Eval runs]
+    S --> D[(SQLite dev<br/>PostgreSQL prod)]
+    S --> Q[SQS / Async Workers]
+    S --> M[MCP Servers / Tools]
+
 ## Development
 
 ```bash
