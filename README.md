@@ -57,6 +57,21 @@ Use it when you want to:
 | Debug real requests | Pipeline traces show cache checks, interceptor decisions, target selection, retries, fallbacks, webhooks, and errors |
 | Evaluate changes | Prompt/model experiments, evaluation sets, replay, feedback, and analytics live beside the runtime |
 
+## How Hyperstrate Compares
+
+Hyperstrate overlaps with AI gateways, hosted model routers, and LLM observability tools, but it is built around owning the traffic path and making routing policy a first-class runtime object.
+
+| Compared With | Good Fit Elsewhere | Hyperstrate Difference |
+| --- | --- | --- |
+| LiteLLM | Drop-in OpenAI-compatible proxying, provider normalization, virtual keys, and spend tracking | Adds a first-party visual control plane, pipeline features, interceptors, evals, team governance, and request traces in one self-hosted server |
+| Portkey or Helicone | Managed AI gateway and observability platforms with routing, caching, logging, and guardrail features | Keeps the gateway, database, credentials, policy, and logs in infrastructure you control, with the UI and API designed as one open-source product |
+| OpenRouter | Hosted access to many models through one account and one API | Uses your own provider accounts, custom/self-hosted models, local policy, tenant budgets, virtual keys, and internal data-retention rules |
+| Langfuse or LangSmith | Deep tracing, prompt management, datasets, experiments, and application-level evaluation workflows | Sits directly in the inference path, so routing, safety, budgets, retries, fallbacks, and access control execute before and during the model call |
+| Kong, Envoy, or cloud API gateways | General-purpose API traffic management, plugins, rate limits, auth, and fleet operations | Provides LLM-native concepts: model catalog, provider keys, token/cost budgets, prompt-aware traces, router evals, virtual keys, MCP tools, and SDK-compatible AI proxy routes |
+| Direct provider SDKs | Small apps with one or two providers and simple operational needs | Centralizes provider changes, policy rollout, cost controls, observability, and fallback logic without rewriting every application |
+
+Hyperstrate is not a replacement for every tool above. It can sit beside observability platforms, existing API gateways, or hosted model marketplaces when those are already part of your stack; its job is to make the AI gateway itself inspectable, governable, and self-hosted.
+
 ## Product Surface
 
 ### Routing Runtime
@@ -90,7 +105,7 @@ Use it when you want to:
 - `gotestsum` for `make test`
 - `swag` and Node.js when regenerating Swagger/OpenAPI docs
 
-### Run Locally
+### First-Time Setup
 
 ```bash
 git clone https://github.com/Hyperstrate/server.git
@@ -98,10 +113,53 @@ cd server
 
 cp .env.dist .env
 
-# Recommended for local development.
+# Recommended for stable local sessions.
 openssl rand -base64 64
 # Paste the value into JWT_SECRET in .env.
+```
 
+Supabase is optional for local development. You can start with the default SQLite database, then switch to Supabase/Postgres when you want a shared database or a production-like setup.
+
+#### Database
+
+For a fast local setup, leave `DATABASE_DSN` empty. The server uses `file:hyperstrate-dev.db?cache=shared&_fk=1`, creates `hyperstrate-dev.db`, and applies embedded SQLite migrations on startup.
+
+For Supabase/Postgres:
+
+1. Create or open a Supabase project.
+2. Copy the Postgres connection string in URI format from the Supabase dashboard.
+3. Add `sslmode=require` if the connection string does not already include it.
+4. Set `DATABASE_DSN` in `.env`.
+
+```dotenv
+DATABASE_DSN=postgresql://postgres:<password>@db.<project-ref>.supabase.co:5432/postgres?sslmode=require
+```
+
+The app treats DSNs starting with `postgres://` or `postgresql://` as PostgreSQL. All other values are treated as SQLite paths. Runtime migrations are applied automatically, so Atlas is only required when you manually inspect, apply, or generate migration files.
+
+For Atlas production migration commands, use `DATABASE_URL` because that is what `atlas.hcl` expects:
+
+```bash
+DATABASE_URL="postgresql://postgres:<password>@db.<project-ref>.supabase.co:5432/postgres?sslmode=require" make migrate-status-prod
+```
+
+#### Supabase Auth / OIDC
+
+If you use Supabase Auth for login, the server only needs the public JWKS endpoint and the provider labels shown by the client. OAuth client IDs, OAuth secrets, Supabase anon keys, and Supabase service-role keys stay in Supabase or in the frontend environment; do not put them in this server's `.env`.
+
+```dotenv
+FRONTEND_URL=http://localhost:8080
+OIDC_JWKS_URL=https://<project-ref>.supabase.co/auth/v1/.well-known/jwks.json
+OIDC_PROVIDERS=google,github
+```
+
+`POST /auth/oidc/exchange` validates the Supabase access token against `OIDC_JWKS_URL` and returns a Hyperstrate session token signed with `JWT_SECRET`. This server expects Supabase Auth tokens signed with an asymmetric key (`ES256` or `RS256`) exposed through JWKS; legacy `HS256` Supabase JWT-secret tokens are not accepted by the JWKS validator.
+
+Enable the matching OAuth providers in Supabase Auth, then set `OIDC_PROVIDERS` to the comma-separated provider names the client should display.
+
+### Run Locally
+
+```bash
 go run ./cmd/api
 ```
 
