@@ -59,47 +59,47 @@ Use it when you want to:
 
 ## How Hyperstrate Compares
 
-Most tools in this space are strong in one layer: model access, gateway proxying, observability, or API infrastructure. Hyperstrate is for teams that want the AI gateway itself to be self-hosted, inspectable, and operated through a first-party UI.
-
-```text
-Application code / SDKs
-        |
-        v
-Hyperstrate Server
-        |
-        +-- Routing: weights, fallbacks, retries, budgets, rate limits
-        +-- Policy: safety interceptors, PII handling, team access
-        +-- Operations: virtual keys, traces, logs, evals, prompts, MCP
-        |
-        v
-OpenAI / Anthropic / Gemini / Bedrock / Ollama / vLLM / custom providers
-```
-
-Legend: `built-in` means first-class product surface, `partial` means possible but narrower, `external` means you usually wire another tool or custom code, and `hosted` means the main control point lives outside your infrastructure.
+Legend: `✓` = built in, `x` = not the product's focus, `Partial N` = possible, but with an important caveat below.
 
 | Capability | Direct SDKs | OpenRouter | LiteLLM | Langfuse / LangSmith | Portkey / Helicone | Hyperstrate |
 | --- | --- | --- | --- | --- | --- | --- |
-| One API for many models | external | built-in | built-in | not focus | built-in | built-in |
-| Bring your own provider keys | app code | partial | built-in | external | partial | built-in |
-| Self-hosted/private model targets | app code | partial | built-in | external | partial | built-in |
-| Runtime routing policy | app code | partial | built-in | not focus | built-in | built-in |
-| Visual router and policy builder | no | partial | partial | not focus | partial | built-in |
-| Orgs, teams, virtual keys, budgets | app code | partial | built-in | partial | built-in | built-in |
-| Traces tied to routing decisions | external | partial | partial | app traces | built-in | built-in |
-| Prompt and eval workflows beside the gateway | external | no | partial | built-in | partial | built-in |
-| Own the gateway, database, logs, and config | app owned | hosted | built-in | varies | varies | built-in |
+| OpenAI-compatible gateway endpoint | x | ✓ | ✓ | x | ✓ | ✓ |
+| Anthropic-compatible gateway endpoint | x | Partial 1 | Partial 2 | x | Partial 3 | ✓ |
+| Bring your own provider keys | ✓ | Partial 4 | ✓ | x | Partial 5 | ✓ |
+| Self-host the gateway runtime | x | x | ✓ | x | Partial 6 | ✓ |
+| Route to self-hosted models | ✓ | Partial 7 | ✓ | x | Partial 8 | ✓ |
+| Weighted, failover, retry, and budget routing | Partial 9 | Partial 10 | ✓ | x | ✓ | ✓ |
+| Visual router and policy builder | x | x | Partial 11 | x | Partial 12 | ✓ |
+| Teams, virtual keys, and usage budgets | x | Partial 13 | ✓ | Partial 14 | ✓ | ✓ |
+| Request traces tied to router decisions | x | Partial 15 | Partial 16 | Partial 17 | ✓ | ✓ |
+| Prompt versions and eval runs beside the gateway | x | x | Partial 18 | ✓ | Partial 19 | ✓ |
+| MCP tools in router pipelines | Partial 20 | x | x | x | x | ✓ |
+| Own database, logs, credentials, and policy config | ✓ | x | ✓ | Partial 21 | Partial 22 | ✓ |
 
-### When To Choose What
+Notes:
 
-| Choose | When It Is The Better Fit |
-| --- | --- |
-| Direct provider SDKs | You have one app, one or two providers, and do not need shared policy or tenant governance yet |
-| OpenRouter | You want fast hosted access to many public models through one account and do not need to own provider credentials or logs |
-| LiteLLM | You mainly need an OpenAI-compatible proxy, provider normalization, virtual keys, and spend controls |
-| Langfuse or LangSmith | Your main problem is application tracing, prompt iteration, datasets, or offline/online eval workflows |
-| Portkey or Helicone | You want a managed gateway and observability product with hosted operations and vendor-managed workflow |
-| Kong, Envoy, or cloud gateways | You are standardizing all HTTP traffic through general API infrastructure and can add AI behavior with plugins or custom services |
-| Hyperstrate | You want routing, policy, provider credentials, access control, traces, prompts, evals, and team operations in one self-hosted AI gateway |
+1. OpenRouter normalizes requests through its API, but Anthropic-native compatibility is not the same product shape as a self-hosted Anthropic proxy route.
+2. LiteLLM supports many provider formats, but the primary proxy compatibility surface is OpenAI-style.
+3. Portkey and Helicone support Anthropic integrations, but hosted gateway behavior depends on the provider and product mode.
+4. OpenRouter has BYOK/provider-routing options, but the model router still runs on OpenRouter.
+5. Managed gateway products can support customer provider keys, but credentials and policy still flow through their hosted control plane unless self-hosted options are used.
+6. Helicone has open-source/self-hosting options; Portkey's common workflow is hosted or managed. The exact deployment model depends on product tier and edition.
+7. OpenRouter can route to selected private/BYOK endpoints, but it is not a general local Ollama, vLLM, or arbitrary internal-model gateway.
+8. Managed gateways can often call custom providers, but private-model support depends on deployment mode and provider integration.
+9. Direct SDKs can do this only by writing and maintaining routing code in each application.
+10. OpenRouter supports hosted model and provider routing, but not local tenant policy owned in your infrastructure.
+11. LiteLLM has operational UI surfaces, but router design is still mainly config/proxy oriented.
+12. Managed products expose routing configuration, but they are not primarily a self-hosted visual router builder paired to your database.
+13. OpenRouter account and key controls are not the same as internal org/team/virtual-key governance for your own tenants.
+14. Observability platforms have workspace and project access controls, but they do not usually enforce gateway spend policy in the request path.
+15. OpenRouter can return routing/provider metadata, but it is not a full internal router trace with policy, team, budget, and interceptor decisions.
+16. LiteLLM logging can capture proxy activity, but trace depth depends on callbacks, storage, and UI setup.
+17. Langfuse and LangSmith trace application execution well; gateway-specific target selection and policy enforcement are external unless instrumented separately.
+18. LiteLLM can integrate with observability and prompt tooling, but prompt/eval workflows are not the core gateway product surface.
+19. Portkey and Helicone include prompt or eval-adjacent workflows, but depth varies by product and plan.
+20. Direct SDKs can call MCP tools from app code, but the tools are not governed as router pipeline capabilities.
+21. Langfuse can be self-hosted; LangSmith deployment depends on plan. Neither is the gateway holding provider credentials and live routing policy by default.
+22. Managed gateways may offer self-hosted or enterprise deployments, but the default product experience is usually not "own every layer locally."
 
 ## Product Surface
 
