@@ -1,9 +1,12 @@
 package db
 
 import (
+	"context"
 	"path/filepath"
 	"testing"
+	"time"
 
+	"ariga.io/atlas/sql/migrate"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -106,6 +109,74 @@ func TestEmbeddedMigrationHistoryKeepsBaselineFiles(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestEmbeddedMigrationHistoryKeepsFunctionsPendingAfterLaterLocalRevisions(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "hyperstrate.db")
+	database, err := gorm.Open(sqlite.Open(path), &gorm.Config{})
+	if err != nil {
+		t.Fatalf("open sqlite: %v", err)
+	}
+
+	sqlDB, err := database.DB()
+	if err != nil {
+		t.Fatalf("get underlying sql.DB: %v", err)
+	}
+
+	dir, err := newEmbedDir(migrationsFS, "migrations/sqlite")
+	if err != nil {
+		t.Fatalf("newEmbedDir: %v", err)
+	}
+	rrw, err := newRevisionRW(sqlDB, "sqlite")
+	if err != nil {
+		t.Fatalf("newRevisionRW: %v", err)
+	}
+	driver, err := atlasDriverForDialect("sqlite", sqlDB)
+	if err != nil {
+		t.Fatalf("atlasDriverForDialect: %v", err)
+	}
+
+	executedAt := time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC)
+	for _, rev := range []struct {
+		version     string
+		description string
+	}{
+		{version: "20260518000001", description: "auth"},
+		{version: "20260518000002", description: "prompts"},
+		{version: "20260518000003", description: "ai"},
+		{version: "20260518000004", description: "routers"},
+		{version: "20260518000005", description: "auth_keys"},
+		{version: "20260518000006", description: "observability"},
+		{version: "20260529000001", description: "infra_model_deployments"},
+		{version: "20260601000001", description: "infra_model_deployment_credentials"},
+	} {
+		if err := rrw.WriteRevision(context.Background(), &migrate.Revision{
+			Version:     rev.version,
+			Description: rev.description,
+			Type:        migrate.RevisionTypeExecute,
+			Applied:     1,
+			Total:       1,
+			ExecutedAt:  executedAt,
+		}); err != nil {
+			t.Fatalf("write revision %s: %v", rev.version, err)
+		}
+	}
+
+	executor, err := migrate.NewExecutor(driver, dir, rrw, migrate.WithAllowDirty(true))
+	if err != nil {
+		t.Fatalf("NewExecutor: %v", err)
+	}
+	pending, err := executor.Pending(context.Background())
+	if err != nil {
+		t.Fatalf("Pending: %v", err)
+	}
+
+	for _, file := range pending {
+		if file.Desc() == "functions" {
+			return
+		}
+	}
+	t.Fatalf("functions migration was not pending; got %v", pending)
 }
 
 func TestMigrateAppliesEmbeddedSQLiteMigrationsFromScratch(t *testing.T) {

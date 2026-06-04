@@ -2,6 +2,7 @@ package application_test
 
 import (
 	"context"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -10,6 +11,7 @@ import (
 	"hyperstrate/server/internal/modules/functions/application"
 	"hyperstrate/server/internal/modules/functions/domain"
 	"hyperstrate/server/internal/shared/dbtype"
+	"hyperstrate/server/internal/shared/pagination"
 )
 
 func TestCreateRunnerPoolStoresHashedBootstrapToken(t *testing.T) {
@@ -103,6 +105,46 @@ func TestRegisterRunnerAgentRequiresValidBootstrapToken(t *testing.T) {
 		Hostname:       "runner-2",
 	}); err != domain.ErrRunnerPoolNotFound {
 		t.Fatalf("expected consumed bootstrap token reuse to fail, got %v", err)
+	}
+}
+
+func TestRunnerServiceReadListsScopeToOrgAndDoNotExposeTokens(t *testing.T) {
+	repos := newRunnerMemoryRepos()
+	svc := application.NewRunnerService(repos.Pools, repos.Agents, repos.Builds, repos.Revisions, repos.Invocations, repos.Logs)
+	ctx := authDomain.WithOrgID(context.Background(), testOrgID)
+
+	pool, err := svc.CreateRunnerPool(ctx, application.CreateRunnerPoolInput{Name: "byoc", Provider: "byoc"})
+	if err != nil {
+		t.Fatalf("CreateRunnerPool returned error: %v", err)
+	}
+	agent, err := svc.RegisterRunnerAgent(context.Background(), application.RegisterRunnerAgentInput{
+		PoolID:         pool.ID,
+		BootstrapToken: pool.BootstrapToken,
+		PublicKey:      "pub",
+		Hostname:       "runner-1",
+	})
+	if err != nil {
+		t.Fatalf("RegisterRunnerAgent returned error: %v", err)
+	}
+
+	pools, err := svc.ListRunnerPools(ctx, pagination.Slice{Page: 1, PerPage: 10})
+	if err != nil {
+		t.Fatalf("ListRunnerPools returned error: %v", err)
+	}
+	if pools.Meta.Total != 1 || len(pools.Items) != 1 || pools.Items[0].ID != pool.ID || pools.Items[0].BootstrapToken != "" {
+		t.Fatalf("unexpected runner pools page: %+v", pools)
+	}
+	agents, err := svc.ListRunnerAgents(ctx, pool.ID, pagination.Slice{Page: 1, PerPage: 10})
+	if err != nil {
+		t.Fatalf("ListRunnerAgents returned error: %v", err)
+	}
+	if agents.Meta.Total != 1 || len(agents.Items) != 1 || agents.Items[0].ID != agent.ID || agents.Items[0].SessionExpiresAt.IsZero() {
+		t.Fatalf("unexpected runner agents page: %+v", agents)
+	}
+
+	otherOrgCtx := authDomain.WithOrgID(context.Background(), "org_other")
+	if _, err := svc.ListRunnerAgents(otherOrgCtx, pool.ID, pagination.Slice{Page: 1, PerPage: 10}); err != domain.ErrRunnerPoolNotFound {
+		t.Fatalf("expected ErrRunnerPoolNotFound for other org, got %v", err)
 	}
 }
 
@@ -450,6 +492,17 @@ func (r *memoryRunnerPoolRepo) FindByID(_ context.Context, id string) (*domain.R
 	return &copy, nil
 }
 
+func (r *memoryRunnerPoolRepo) ListByOrg(_ context.Context, orgID string, slice pagination.Slice) ([]domain.RunnerPool, int64, error) {
+	out := make([]domain.RunnerPool, 0, len(r.byID))
+	for _, pool := range r.byID {
+		if pool.OrgID == orgID {
+			out = append(out, *pool)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].CreatedAt.After(out[j].CreatedAt) })
+	return pageDomain(out, slice), int64(len(out)), nil
+}
+
 func (r *memoryRunnerPoolRepo) ConsumeBootstrapToken(_ context.Context, id, tokenHash string, consumedAt time.Time) (*domain.RunnerPool, error) {
 	pool := r.byID[id]
 	if pool == nil || pool.BootstrapTokenConsumedAt != nil || pool.BootstrapTokenHash != tokenHash {
@@ -487,6 +540,28 @@ func (r *memoryRunnerAgentRepo) FindBySessionTokenHash(_ context.Context, hash s
 		}
 	}
 	return nil, domain.ErrRunnerAgentNotFound
+}
+
+func (r *memoryRunnerAgentRepo) ListByPool(_ context.Context, orgID, poolID string, slice pagination.Slice) ([]domain.RunnerAgent, int64, error) {
+	out := make([]domain.RunnerAgent, 0, len(r.byID))
+	for _, agent := range r.byID {
+		if agent.OrgID == orgID && agent.PoolID == poolID {
+			out = append(out, *agent)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].LastHeartbeatAt == nil && out[j].LastHeartbeatAt != nil {
+			return false
+		}
+		if out[i].LastHeartbeatAt != nil && out[j].LastHeartbeatAt == nil {
+			return true
+		}
+		if out[i].LastHeartbeatAt != nil && out[j].LastHeartbeatAt != nil && !out[i].LastHeartbeatAt.Equal(*out[j].LastHeartbeatAt) {
+			return out[i].LastHeartbeatAt.After(*out[j].LastHeartbeatAt)
+		}
+		return out[i].CreatedAt.After(out[j].CreatedAt)
+	})
+	return pageDomain(out, slice), int64(len(out)), nil
 }
 
 func (r *memoryRunnerAgentRepo) RecordHeartbeat(_ context.Context, orgID, id string, heartbeatAt, sessionExpiresAt time.Time, capabilities dbtype.JSONMap) (*domain.RunnerAgent, error) {

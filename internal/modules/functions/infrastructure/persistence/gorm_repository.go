@@ -44,6 +44,17 @@ func (r *gormAppRepository) FindByID(ctx context.Context, orgID, id string) (*do
 	return &app, nil
 }
 
+func (r *gormAppRepository) ListByOrg(ctx context.Context, orgID string, slice pagination.Slice) ([]domain.App, int64, error) {
+	base := r.db.WithContext(ctx).Table(tableFunctionApps).Where("org_id = ?", orgID)
+	var total int64
+	if err := base.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	var apps []domain.App
+	err := base.Order("created_at DESC, id DESC").Limit(slice.PerPage).Offset(slice.Offset()).Find(&apps).Error
+	return apps, total, err
+}
+
 type gormFunctionRepository struct{ db *gorm.DB }
 
 func NewFunctionRepository(db *gorm.DB) domain.FunctionRepository {
@@ -75,6 +86,17 @@ func (r *gormFunctionRepository) FindByID(ctx context.Context, orgID, id string)
 		return nil, err
 	}
 	return &fn, nil
+}
+
+func (r *gormFunctionRepository) ListByApp(ctx context.Context, orgID, appID string, slice pagination.Slice) ([]domain.Function, int64, error) {
+	base := r.db.WithContext(ctx).Table(tableFunctions).Where("org_id = ? AND app_id = ?", orgID, appID)
+	var total int64
+	if err := base.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	var functions []domain.Function
+	err := base.Order("created_at DESC, id DESC").Limit(slice.PerPage).Offset(slice.Offset()).Find(&functions).Error
+	return functions, total, err
 }
 
 func (r *gormFunctionRepository) Update(ctx context.Context, fn *domain.Function) error {
@@ -113,6 +135,17 @@ func (r *gormRevisionRepository) FindByID(ctx context.Context, orgID, id string)
 	return &rev, nil
 }
 
+func (r *gormRevisionRepository) ListByFunction(ctx context.Context, orgID, functionID string, slice pagination.Slice) ([]domain.FunctionRevision, int64, error) {
+	base := r.db.WithContext(ctx).Table(tableFunctionRevisions).Where("org_id = ? AND function_id = ?", orgID, functionID)
+	var total int64
+	if err := base.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	var revisions []domain.FunctionRevision
+	err := base.Order("version DESC, created_at DESC, id DESC").Limit(slice.PerPage).Offset(slice.Offset()).Find(&revisions).Error
+	return revisions, total, err
+}
+
 func (r *gormRevisionRepository) SetBuildID(ctx context.Context, orgID, revisionID, buildID string) error {
 	result := r.db.WithContext(ctx).
 		Table(tableFunctionRevisions).
@@ -146,6 +179,28 @@ func (r *gormBuildRepository) FindByID(ctx context.Context, orgID, id string) (*
 		return nil, err
 	}
 	return &build, nil
+}
+
+func (r *gormBuildRepository) ListByRevision(ctx context.Context, orgID, revisionID string, slice pagination.Slice) ([]domain.FunctionBuild, int64, error) {
+	base := r.db.WithContext(ctx).Table(tableFunctionBuilds).Where("org_id = ? AND revision_id = ?", orgID, revisionID)
+	var total int64
+	if err := base.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	var builds []domain.FunctionBuild
+	err := base.Order("created_at DESC, id DESC").Limit(slice.PerPage).Offset(slice.Offset()).Find(&builds).Error
+	return builds, total, err
+}
+
+func (r *gormBuildRepository) ListByFunction(ctx context.Context, orgID, functionID string, slice pagination.Slice) ([]domain.FunctionBuild, int64, error) {
+	base := r.db.WithContext(ctx).Table(tableFunctionBuilds).Where("org_id = ? AND function_id = ?", orgID, functionID)
+	var total int64
+	if err := base.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	var builds []domain.FunctionBuild
+	err := base.Order("created_at DESC, id DESC").Limit(slice.PerPage).Offset(slice.Offset()).Find(&builds).Error
+	return builds, total, err
 }
 
 func (r *gormBuildRepository) Update(ctx context.Context, build *domain.FunctionBuild) error {
@@ -196,6 +251,17 @@ func (r *gormInvocationRepository) FindByIdempotencyKey(ctx context.Context, org
 		return nil, err
 	}
 	return &inv, nil
+}
+
+func (r *gormInvocationRepository) ListByFunction(ctx context.Context, orgID, functionID string, slice pagination.Slice) ([]domain.Invocation, int64, error) {
+	base := r.db.WithContext(ctx).Table(tableFunctionInvocations).Where("org_id = ? AND function_id = ?", orgID, functionID)
+	var total int64
+	if err := base.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	var invocations []domain.Invocation
+	err := base.Order("created_at DESC, id DESC").Limit(slice.PerPage).Offset(slice.Offset()).Find(&invocations).Error
+	return invocations, total, err
 }
 
 func (r *gormInvocationRepository) LeaseNextQueued(ctx context.Context, orgID, runnerID, leaseID string, leaseExpiresAt time.Time, selector domain.RunnerSelector) (*domain.Invocation, error) {
@@ -339,6 +405,17 @@ func (r *gormRunnerPoolRepository) FindByID(ctx context.Context, id string) (*do
 	return &pool, nil
 }
 
+func (r *gormRunnerPoolRepository) ListByOrg(ctx context.Context, orgID string, slice pagination.Slice) ([]domain.RunnerPool, int64, error) {
+	base := r.db.WithContext(ctx).Table(tableFunctionRunnerPools).Where("org_id = ?", orgID)
+	var total int64
+	if err := base.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	var pools []domain.RunnerPool
+	err := base.Order("created_at DESC, id DESC").Limit(slice.PerPage).Offset(slice.Offset()).Find(&pools).Error
+	return pools, total, err
+}
+
 func (r *gormRunnerPoolRepository) ConsumeBootstrapToken(ctx context.Context, id, tokenHash string, consumedAt time.Time) (*domain.RunnerPool, error) {
 	result := r.db.WithContext(ctx).
 		Table(tableFunctionRunnerPools).
@@ -385,15 +462,28 @@ func (r *gormRunnerAgentRepository) FindBySessionTokenHash(ctx context.Context, 
 	return &agent, nil
 }
 
+func (r *gormRunnerAgentRepository) ListByPool(ctx context.Context, orgID, poolID string, slice pagination.Slice) ([]domain.RunnerAgent, int64, error) {
+	base := r.db.WithContext(ctx).Table(tableFunctionRunnerAgents).Where("org_id = ? AND pool_id = ?", orgID, poolID)
+	var total int64
+	if err := base.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	var agents []domain.RunnerAgent
+	err := base.Order("last_heartbeat_at IS NULL ASC, last_heartbeat_at DESC, created_at DESC, id DESC").Limit(slice.PerPage).Offset(slice.Offset()).Find(&agents).Error
+	return agents, total, err
+}
+
 func (r *gormRunnerAgentRepository) RecordHeartbeat(ctx context.Context, orgID, id string, heartbeatAt, sessionExpiresAt time.Time, capabilities dbtype.JSONMap) (*domain.RunnerAgent, error) {
+	updates := domain.RunnerAgent{
+		LastHeartbeatAt:  &heartbeatAt,
+		SessionExpiresAt: sessionExpiresAt,
+		Capabilities:     capabilities,
+	}
 	result := r.db.WithContext(ctx).
 		Table(tableFunctionRunnerAgents).
 		Where("org_id = ? AND id = ? AND status = ?", orgID, id, domain.RunnerAgentStatusOnline).
-		Updates(map[string]any{
-			"last_heartbeat_at":  heartbeatAt,
-			"session_expires_at": sessionExpiresAt,
-			"capabilities":       capabilities,
-		})
+		Select("last_heartbeat_at", "session_expires_at", "capabilities").
+		Updates(&updates)
 	if result.Error != nil {
 		return nil, result.Error
 	}

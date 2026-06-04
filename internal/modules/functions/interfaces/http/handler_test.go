@@ -32,9 +32,16 @@ func TestRegisterRoutesMountsAdminAndInferEndpoints(t *testing.T) {
 	}
 
 	expected := []string{
+		"GET /functions/apps",
 		"POST /functions/apps",
+		"GET /functions/apps/:appId/functions",
 		"POST /functions/apps/:appId/functions",
+		"GET /functions/functions/:functionId",
+		"GET /functions/functions/:functionId/revisions",
+		"GET /functions/functions/:functionId/invocations",
+		"GET /functions/runner-pools",
 		"POST /functions/runner-pools",
+		"GET /functions/runner-pools/:poolId/agents",
 		"POST /functions/:functionId/invocations",
 		"GET /functions/invocations/:invocationId",
 		"GET /functions/invocations/:invocationId/logs",
@@ -48,6 +55,207 @@ func TestRegisterRoutesMountsAdminAndInferEndpoints(t *testing.T) {
 		if !routes[route] {
 			t.Fatalf("expected route %q to be registered", route)
 		}
+	}
+}
+
+func TestListAppsReturnsPaginatedApps(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	svc := &stubService{
+		listApps: func(_ context.Context, slice pagination.Slice) (pagination.Paginated[application.AppResponse], error) {
+			if slice.Page != 2 || slice.PerPage != 1 {
+				t.Fatalf("unexpected pagination slice: %+v", slice)
+			}
+			return pagination.New([]application.AppResponse{{ID: "fapp_2", Name: "second"}}, 3, slice), nil
+		},
+	}
+	engine := gin.New()
+	NewHandler(svc, &stubRunnerService{}).RegisterAdminRoutes(engine.Group("/functions"))
+
+	rec := performJSON(engine, http.MethodGet, "/functions/apps?page=2&perPage=1", nil)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+	var body pagination.Paginated[application.AppResponse]
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if body.Meta.Total != 3 || body.Meta.Page != 2 || len(body.Items) != 1 || body.Items[0].ID != "fapp_2" {
+		t.Fatalf("unexpected response: %+v", body)
+	}
+}
+
+func TestListFunctionsUsesAppParamAndPagination(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	svc := &stubService{
+		listFunctions: func(_ context.Context, appID string, slice pagination.Slice) (pagination.Paginated[application.FunctionResponse], error) {
+			if appID != "fapp_123" {
+				t.Fatalf("appID = %q", appID)
+			}
+			if slice.Page != 3 || slice.PerPage != 2 {
+				t.Fatalf("unexpected pagination slice: %+v", slice)
+			}
+			return pagination.New([]application.FunctionResponse{{ID: "fn_123", AppID: appID, Name: "parse"}}, 5, slice), nil
+		},
+	}
+	engine := gin.New()
+	NewHandler(svc, &stubRunnerService{}).RegisterAdminRoutes(engine.Group("/functions"))
+
+	rec := performJSON(engine, http.MethodGet, "/functions/apps/fapp_123/functions?page=3&perPage=2", nil)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+	var body pagination.Paginated[application.FunctionResponse]
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if body.Meta.Total != 5 || len(body.Items) != 1 || body.Items[0].AppID != "fapp_123" {
+		t.Fatalf("unexpected response: %+v", body)
+	}
+}
+
+func TestGetFunctionReturnsFunctionDetail(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	svc := &stubService{
+		getFunction: func(_ context.Context, functionID string) (*application.FunctionResponse, error) {
+			if functionID != "fn_123" {
+				t.Fatalf("functionID = %q", functionID)
+			}
+			return &application.FunctionResponse{ID: functionID, Name: "parse", Status: domain.FunctionStatusReady}, nil
+		},
+	}
+	engine := gin.New()
+	NewHandler(svc, &stubRunnerService{}).RegisterAdminRoutes(engine.Group("/functions"))
+
+	rec := performJSON(engine, http.MethodGet, "/functions/functions/fn_123", nil)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+	var body application.FunctionResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if body.ID != "fn_123" || body.Status != domain.FunctionStatusReady {
+		t.Fatalf("unexpected response: %+v", body)
+	}
+}
+
+func TestListFunctionRevisionsUsesFunctionParamAndPagination(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	svc := &stubService{
+		listFunctionRevisions: func(_ context.Context, functionID string, slice pagination.Slice) (pagination.Paginated[application.RevisionResponse], error) {
+			if functionID != "fn_123" || slice.Page != 2 || slice.PerPage != 1 {
+				t.Fatalf("unexpected call: functionID=%q slice=%+v", functionID, slice)
+			}
+			return pagination.New([]application.RevisionResponse{{ID: "frev_2", FunctionID: functionID, Version: 2}}, 2, slice), nil
+		},
+	}
+	engine := gin.New()
+	NewHandler(svc, &stubRunnerService{}).RegisterAdminRoutes(engine.Group("/functions"))
+
+	rec := performJSON(engine, http.MethodGet, "/functions/functions/fn_123/revisions?page=2&perPage=1", nil)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+	var body pagination.Paginated[application.RevisionResponse]
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if body.Meta.Total != 2 || len(body.Items) != 1 || body.Items[0].Version != 2 {
+		t.Fatalf("unexpected response: %+v", body)
+	}
+}
+
+func TestListFunctionInvocationsUsesFunctionParamAndPagination(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	svc := &stubService{
+		listFunctionInvocations: func(_ context.Context, functionID string, slice pagination.Slice) (pagination.Paginated[application.InvocationResponse], error) {
+			if functionID != "fn_123" || slice.Page != 2 || slice.PerPage != 1 {
+				t.Fatalf("unexpected call: functionID=%q slice=%+v", functionID, slice)
+			}
+			return pagination.New([]application.InvocationResponse{{ID: "finv_2", FunctionID: functionID, Status: domain.InvocationStatusSucceeded}}, 4, slice), nil
+		},
+	}
+	engine := gin.New()
+	NewHandler(svc, &stubRunnerService{}).RegisterAdminRoutes(engine.Group("/functions"))
+
+	rec := performJSON(engine, http.MethodGet, "/functions/functions/fn_123/invocations?page=2&perPage=1", nil)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+	var body pagination.Paginated[application.InvocationResponse]
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if body.Meta.Total != 4 || len(body.Items) != 1 || body.Items[0].ID != "finv_2" {
+		t.Fatalf("unexpected response: %+v", body)
+	}
+}
+
+func TestListRunnerPoolsReturnsPaginatedPoolsWithoutBootstrapToken(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	runnerSvc := &stubRunnerService{
+		listRunnerPools: func(_ context.Context, slice pagination.Slice) (pagination.Paginated[application.RunnerPoolResponse], error) {
+			if slice.Page != 2 || slice.PerPage != 1 {
+				t.Fatalf("unexpected pagination slice: %+v", slice)
+			}
+			return pagination.New([]application.RunnerPoolResponse{{ID: "frpool_2", Name: "prod", Status: domain.RunnerPoolStatusActive}}, 3, slice), nil
+		},
+	}
+	engine := gin.New()
+	NewHandler(&stubService{}, runnerSvc).RegisterAdminRoutes(engine.Group("/functions"))
+
+	rec := performJSON(engine, http.MethodGet, "/functions/runner-pools?page=2&perPage=1", nil)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+	var raw map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &raw); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	items := raw["items"].([]any)
+	item := items[0].(map[string]any)
+	if _, ok := item["bootstrapToken"]; ok {
+		t.Fatalf("list response leaked bootstrapToken: %s", rec.Body.String())
+	}
+}
+
+func TestListRunnerAgentsUsesPoolParamAndPagination(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	runnerSvc := &stubRunnerService{
+		listRunnerAgents: func(_ context.Context, poolID string, slice pagination.Slice) (pagination.Paginated[application.RunnerAgentResponse], error) {
+			if poolID != "frpool_123" || slice.Page != 2 || slice.PerPage != 1 {
+				t.Fatalf("unexpected call: poolID=%q slice=%+v", poolID, slice)
+			}
+			return pagination.New([]application.RunnerAgentResponse{{ID: "fragent_2", PoolID: poolID, Status: domain.RunnerAgentStatusOnline}}, 2, slice), nil
+		},
+	}
+	engine := gin.New()
+	NewHandler(&stubService{}, runnerSvc).RegisterAdminRoutes(engine.Group("/functions"))
+
+	rec := performJSON(engine, http.MethodGet, "/functions/runner-pools/frpool_123/agents?page=2&perPage=1", nil)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+	var body pagination.Paginated[application.RunnerAgentResponse]
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if body.Meta.Total != 2 || len(body.Items) != 1 || body.Items[0].PoolID != "frpool_123" {
+		t.Fatalf("unexpected response: %+v", body)
 	}
 }
 
@@ -671,16 +879,23 @@ func performJSONWithHeaders(engine *gin.Engine, method, path string, body any, h
 }
 
 type stubService struct {
-	createApp           func(context.Context, application.CreateAppInput) (*application.AppResponse, error)
-	deployFunction      func(context.Context, string, application.DeployFunctionInput) (*application.FunctionResponse, error)
-	invokeFunction      func(context.Context, string, application.InvokeFunctionInput) (*application.InvocationResponse, error)
-	getInvocation       func(context.Context, string) (*application.InvocationResponse, error)
-	listInvocationLogs  func(context.Context, string, pagination.Slice) (pagination.Paginated[application.LogResponse], error)
-	appendInvocationLog func(context.Context, string, application.AppendLogInput) (*application.LogResponse, error)
+	createApp               func(context.Context, application.CreateAppInput) (*application.AppResponse, error)
+	listApps                func(context.Context, pagination.Slice) (pagination.Paginated[application.AppResponse], error)
+	deployFunction          func(context.Context, string, application.DeployFunctionInput) (*application.FunctionResponse, error)
+	listFunctions           func(context.Context, string, pagination.Slice) (pagination.Paginated[application.FunctionResponse], error)
+	getFunction             func(context.Context, string) (*application.FunctionResponse, error)
+	listFunctionRevisions   func(context.Context, string, pagination.Slice) (pagination.Paginated[application.RevisionResponse], error)
+	invokeFunction          func(context.Context, string, application.InvokeFunctionInput) (*application.InvocationResponse, error)
+	listFunctionInvocations func(context.Context, string, pagination.Slice) (pagination.Paginated[application.InvocationResponse], error)
+	getInvocation           func(context.Context, string) (*application.InvocationResponse, error)
+	listInvocationLogs      func(context.Context, string, pagination.Slice) (pagination.Paginated[application.LogResponse], error)
+	appendInvocationLog     func(context.Context, string, application.AppendLogInput) (*application.LogResponse, error)
 }
 
 type stubRunnerService struct {
 	createRunnerPool     func(context.Context, application.CreateRunnerPoolInput) (*application.RunnerPoolResponse, error)
+	listRunnerPools      func(context.Context, pagination.Slice) (pagination.Paginated[application.RunnerPoolResponse], error)
+	listRunnerAgents     func(context.Context, string, pagination.Slice) (pagination.Paginated[application.RunnerAgentResponse], error)
 	registerRunnerAgent  func(context.Context, application.RegisterRunnerAgentInput) (*application.RunnerAgentRegistrationResponse, error)
 	heartbeatRunnerAgent func(context.Context, application.HeartbeatRunnerAgentInput) (*application.RunnerAgentHeartbeatResponse, error)
 	leaseNextInvocation  func(context.Context, application.LeaseInvocationInput) (*application.RunnerLeaseResponse, error)
@@ -693,6 +908,20 @@ func (s *stubRunnerService) CreateRunnerPool(ctx context.Context, input applicat
 		return nil, errors.New("unexpected CreateRunnerPool call")
 	}
 	return s.createRunnerPool(ctx, input)
+}
+
+func (s *stubRunnerService) ListRunnerPools(ctx context.Context, slice pagination.Slice) (pagination.Paginated[application.RunnerPoolResponse], error) {
+	if s.listRunnerPools == nil {
+		return pagination.Paginated[application.RunnerPoolResponse]{}, errors.New("unexpected ListRunnerPools call")
+	}
+	return s.listRunnerPools(ctx, slice)
+}
+
+func (s *stubRunnerService) ListRunnerAgents(ctx context.Context, poolID string, slice pagination.Slice) (pagination.Paginated[application.RunnerAgentResponse], error) {
+	if s.listRunnerAgents == nil {
+		return pagination.Paginated[application.RunnerAgentResponse]{}, errors.New("unexpected ListRunnerAgents call")
+	}
+	return s.listRunnerAgents(ctx, poolID, slice)
 }
 
 func (s *stubRunnerService) RegisterRunnerAgent(ctx context.Context, input application.RegisterRunnerAgentInput) (*application.RunnerAgentRegistrationResponse, error) {
@@ -737,6 +966,13 @@ func (s *stubService) CreateApp(ctx context.Context, input application.CreateApp
 	return s.createApp(ctx, input)
 }
 
+func (s *stubService) ListApps(ctx context.Context, slice pagination.Slice) (pagination.Paginated[application.AppResponse], error) {
+	if s.listApps == nil {
+		return pagination.Paginated[application.AppResponse]{}, errors.New("unexpected ListApps call")
+	}
+	return s.listApps(ctx, slice)
+}
+
 func (s *stubService) DeployFunction(ctx context.Context, appID string, input application.DeployFunctionInput) (*application.FunctionResponse, error) {
 	if s.deployFunction == nil {
 		return nil, errors.New("unexpected DeployFunction call")
@@ -744,11 +980,39 @@ func (s *stubService) DeployFunction(ctx context.Context, appID string, input ap
 	return s.deployFunction(ctx, appID, input)
 }
 
+func (s *stubService) ListFunctions(ctx context.Context, appID string, slice pagination.Slice) (pagination.Paginated[application.FunctionResponse], error) {
+	if s.listFunctions == nil {
+		return pagination.Paginated[application.FunctionResponse]{}, errors.New("unexpected ListFunctions call")
+	}
+	return s.listFunctions(ctx, appID, slice)
+}
+
+func (s *stubService) GetFunction(ctx context.Context, functionID string) (*application.FunctionResponse, error) {
+	if s.getFunction == nil {
+		return nil, errors.New("unexpected GetFunction call")
+	}
+	return s.getFunction(ctx, functionID)
+}
+
+func (s *stubService) ListFunctionRevisions(ctx context.Context, functionID string, slice pagination.Slice) (pagination.Paginated[application.RevisionResponse], error) {
+	if s.listFunctionRevisions == nil {
+		return pagination.Paginated[application.RevisionResponse]{}, errors.New("unexpected ListFunctionRevisions call")
+	}
+	return s.listFunctionRevisions(ctx, functionID, slice)
+}
+
 func (s *stubService) InvokeFunction(ctx context.Context, functionID string, input application.InvokeFunctionInput) (*application.InvocationResponse, error) {
 	if s.invokeFunction == nil {
 		return nil, errors.New("unexpected InvokeFunction call")
 	}
 	return s.invokeFunction(ctx, functionID, input)
+}
+
+func (s *stubService) ListFunctionInvocations(ctx context.Context, functionID string, slice pagination.Slice) (pagination.Paginated[application.InvocationResponse], error) {
+	if s.listFunctionInvocations == nil {
+		return pagination.Paginated[application.InvocationResponse]{}, errors.New("unexpected ListFunctionInvocations call")
+	}
+	return s.listFunctionInvocations(ctx, functionID, slice)
 }
 
 func (s *stubService) GetInvocation(ctx context.Context, invocationID string) (*application.InvocationResponse, error) {

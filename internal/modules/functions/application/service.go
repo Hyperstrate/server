@@ -15,8 +15,13 @@ import (
 
 type Service interface {
 	CreateApp(ctx context.Context, input CreateAppInput) (*AppResponse, error)
+	ListApps(ctx context.Context, slice pagination.Slice) (pagination.Paginated[AppResponse], error)
 	DeployFunction(ctx context.Context, appID string, input DeployFunctionInput) (*FunctionResponse, error)
+	ListFunctions(ctx context.Context, appID string, slice pagination.Slice) (pagination.Paginated[FunctionResponse], error)
+	GetFunction(ctx context.Context, functionID string) (*FunctionResponse, error)
+	ListFunctionRevisions(ctx context.Context, functionID string, slice pagination.Slice) (pagination.Paginated[RevisionResponse], error)
 	InvokeFunction(ctx context.Context, functionID string, input InvokeFunctionInput) (*InvocationResponse, error)
+	ListFunctionInvocations(ctx context.Context, functionID string, slice pagination.Slice) (pagination.Paginated[InvocationResponse], error)
 	GetInvocation(ctx context.Context, invocationID string) (*InvocationResponse, error)
 	ListInvocationLogs(ctx context.Context, invocationID string, slice pagination.Slice) (pagination.Paginated[LogResponse], error)
 	AppendInvocationLog(ctx context.Context, invocationID string, input AppendLogInput) (*LogResponse, error)
@@ -26,6 +31,7 @@ type service struct {
 	apps        domain.AppRepository
 	functions   domain.FunctionRepository
 	revisions   domain.RevisionRepository
+	builds      domain.BuildRepository
 	invocations domain.InvocationRepository
 	logs        domain.LogRepository
 }
@@ -34,6 +40,7 @@ func NewService(
 	apps domain.AppRepository,
 	functions domain.FunctionRepository,
 	revisions domain.RevisionRepository,
+	builds domain.BuildRepository,
 	invocations domain.InvocationRepository,
 	logs domain.LogRepository,
 ) Service {
@@ -41,6 +48,7 @@ func NewService(
 		apps:        apps,
 		functions:   functions,
 		revisions:   revisions,
+		builds:      builds,
 		invocations: invocations,
 		logs:        logs,
 	}
@@ -58,6 +66,19 @@ func (s *service) CreateApp(ctx context.Context, input CreateAppInput) (*AppResp
 	}
 	resp := toAppResponse(app)
 	return &resp, nil
+}
+
+func (s *service) ListApps(ctx context.Context, slice pagination.Slice) (pagination.Paginated[AppResponse], error) {
+	orgID := authDomain.OrgIDFromContext(ctx)
+	apps, total, err := s.apps.ListByOrg(ctx, orgID, slice)
+	if err != nil {
+		return pagination.Paginated[AppResponse]{}, err
+	}
+	resp := make([]AppResponse, 0, len(apps))
+	for i := range apps {
+		resp = append(resp, toAppResponse(&apps[i]))
+	}
+	return pagination.New(resp, total, slice), nil
 }
 
 func (s *service) DeployFunction(ctx context.Context, appID string, input DeployFunctionInput) (*FunctionResponse, error) {
@@ -102,6 +123,57 @@ func (s *service) DeployFunction(ctx context.Context, appID string, input Deploy
 
 	resp := toFunctionResponse(fn)
 	return &resp, nil
+}
+
+func (s *service) ListFunctions(ctx context.Context, appID string, slice pagination.Slice) (pagination.Paginated[FunctionResponse], error) {
+	orgID := authDomain.OrgIDFromContext(ctx)
+	if _, err := s.apps.FindByID(ctx, orgID, appID); err != nil {
+		return pagination.Paginated[FunctionResponse]{}, err
+	}
+	functions, total, err := s.functions.ListByApp(ctx, orgID, appID, slice)
+	if err != nil {
+		return pagination.Paginated[FunctionResponse]{}, err
+	}
+	resp := make([]FunctionResponse, 0, len(functions))
+	for i := range functions {
+		resp = append(resp, toFunctionResponse(&functions[i]))
+	}
+	return pagination.New(resp, total, slice), nil
+}
+
+func (s *service) GetFunction(ctx context.Context, functionID string) (*FunctionResponse, error) {
+	orgID := authDomain.OrgIDFromContext(ctx)
+	fn, err := s.functions.FindByID(ctx, orgID, functionID)
+	if err != nil {
+		return nil, err
+	}
+	resp := toFunctionResponse(fn)
+	return &resp, nil
+}
+
+func (s *service) ListFunctionRevisions(ctx context.Context, functionID string, slice pagination.Slice) (pagination.Paginated[RevisionResponse], error) {
+	orgID := authDomain.OrgIDFromContext(ctx)
+	fn, err := s.functions.FindByID(ctx, orgID, functionID)
+	if err != nil {
+		return pagination.Paginated[RevisionResponse]{}, err
+	}
+	revisions, total, err := s.revisions.ListByFunction(ctx, orgID, fn.ID, slice)
+	if err != nil {
+		return pagination.Paginated[RevisionResponse]{}, err
+	}
+	resp := make([]RevisionResponse, 0, len(revisions))
+	for i := range revisions {
+		var build *domain.FunctionBuild
+		if revisions[i].BuildID != "" && s.builds != nil {
+			if found, err := s.builds.FindByID(ctx, orgID, revisions[i].BuildID); err == nil {
+				build = found
+			} else if !errors.Is(err, domain.ErrBuildNotFound) {
+				return pagination.Paginated[RevisionResponse]{}, err
+			}
+		}
+		resp = append(resp, toRevisionResponseWithBuild(&revisions[i], build))
+	}
+	return pagination.New(resp, total, slice), nil
 }
 
 func normalizeDeployFunctionInput(input DeployFunctionInput) (DeployFunctionInput, error) {
@@ -200,6 +272,23 @@ func (s *service) InvokeFunction(ctx context.Context, functionID string, input I
 	}
 	resp := toInvocationResponse(inv)
 	return &resp, nil
+}
+
+func (s *service) ListFunctionInvocations(ctx context.Context, functionID string, slice pagination.Slice) (pagination.Paginated[InvocationResponse], error) {
+	orgID := authDomain.OrgIDFromContext(ctx)
+	fn, err := s.functions.FindByID(ctx, orgID, functionID)
+	if err != nil {
+		return pagination.Paginated[InvocationResponse]{}, err
+	}
+	invocations, total, err := s.invocations.ListByFunction(ctx, orgID, fn.ID, slice)
+	if err != nil {
+		return pagination.Paginated[InvocationResponse]{}, err
+	}
+	resp := make([]InvocationResponse, 0, len(invocations))
+	for i := range invocations {
+		resp = append(resp, toInvocationResponse(&invocations[i]))
+	}
+	return pagination.New(resp, total, slice), nil
 }
 
 func (s *service) AppendInvocationLog(ctx context.Context, invocationID string, input AppendLogInput) (*LogResponse, error) {

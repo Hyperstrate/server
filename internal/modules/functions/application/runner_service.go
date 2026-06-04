@@ -12,12 +12,15 @@ import (
 	authDomain "hyperstrate/server/internal/modules/auth/domain"
 	"hyperstrate/server/internal/modules/functions/domain"
 	"hyperstrate/server/internal/shared/dbtype"
+	"hyperstrate/server/internal/shared/pagination"
 
 	"go.jetify.com/typeid/v2"
 )
 
 type RunnerService interface {
 	CreateRunnerPool(ctx context.Context, input CreateRunnerPoolInput) (*RunnerPoolResponse, error)
+	ListRunnerPools(ctx context.Context, slice pagination.Slice) (pagination.Paginated[RunnerPoolResponse], error)
+	ListRunnerAgents(ctx context.Context, poolID string, slice pagination.Slice) (pagination.Paginated[RunnerAgentResponse], error)
 	RegisterRunnerAgent(ctx context.Context, input RegisterRunnerAgentInput) (*RunnerAgentRegistrationResponse, error)
 	HeartbeatRunnerAgent(ctx context.Context, input HeartbeatRunnerAgentInput) (*RunnerAgentHeartbeatResponse, error)
 	LeaseNextInvocation(ctx context.Context, input LeaseInvocationInput) (*RunnerLeaseResponse, error)
@@ -90,6 +93,8 @@ type RunnerPoolResponse struct {
 	Status         domain.RunnerPoolStatus `json:"status"`
 	Capabilities   dbtype.JSONMap          `json:"capabilities,omitempty"`
 	BootstrapToken string                  `json:"bootstrapToken,omitempty"`
+	CreatedAt      time.Time               `json:"createdAt"`
+	ModifiedAt     time.Time               `json:"modifiedAt"`
 }
 
 type RunnerAgentRegistrationResponse struct {
@@ -134,6 +139,41 @@ func (s *runnerService) CreateRunnerPool(ctx context.Context, input CreateRunner
 	resp := toRunnerPoolResponse(pool)
 	resp.BootstrapToken = token
 	return &resp, nil
+}
+
+func (s *runnerService) ListRunnerPools(ctx context.Context, slice pagination.Slice) (pagination.Paginated[RunnerPoolResponse], error) {
+	orgID := authDomain.OrgIDFromContext(ctx)
+	pools, total, err := s.pools.ListByOrg(ctx, orgID, slice)
+	if err != nil {
+		return pagination.Paginated[RunnerPoolResponse]{}, err
+	}
+	resp := make([]RunnerPoolResponse, 0, len(pools))
+	for i := range pools {
+		item := toRunnerPoolResponse(&pools[i])
+		item.BootstrapToken = ""
+		resp = append(resp, item)
+	}
+	return pagination.New(resp, total, slice), nil
+}
+
+func (s *runnerService) ListRunnerAgents(ctx context.Context, poolID string, slice pagination.Slice) (pagination.Paginated[RunnerAgentResponse], error) {
+	orgID := authDomain.OrgIDFromContext(ctx)
+	pool, err := s.pools.FindByID(ctx, poolID)
+	if err != nil {
+		return pagination.Paginated[RunnerAgentResponse]{}, err
+	}
+	if pool.OrgID != orgID {
+		return pagination.Paginated[RunnerAgentResponse]{}, domain.ErrRunnerPoolNotFound
+	}
+	agents, total, err := s.agents.ListByPool(ctx, orgID, pool.ID, slice)
+	if err != nil {
+		return pagination.Paginated[RunnerAgentResponse]{}, err
+	}
+	resp := make([]RunnerAgentResponse, 0, len(agents))
+	for i := range agents {
+		resp = append(resp, toRunnerAgentResponse(&agents[i]))
+	}
+	return pagination.New(resp, total, slice), nil
 }
 
 func (s *runnerService) RegisterRunnerAgent(ctx context.Context, input RegisterRunnerAgentInput) (*RunnerAgentRegistrationResponse, error) {
@@ -318,6 +358,8 @@ func toRunnerPoolResponse(pool *domain.RunnerPool) RunnerPoolResponse {
 		Region:       pool.Region,
 		Status:       pool.Status,
 		Capabilities: pool.Capabilities,
+		CreatedAt:    pool.CreatedAt,
+		ModifiedAt:   pool.ModifiedAt,
 	}
 }
 

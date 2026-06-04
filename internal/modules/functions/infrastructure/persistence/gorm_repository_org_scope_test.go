@@ -48,6 +48,13 @@ func TestFunctionRepositoriesScopeWritesAndReadsByOrg(t *testing.T) {
 	if _, err := apps.FindByID(ctx, "org_a", "fapp_b"); !errors.Is(err, domain.ErrAppNotFound) {
 		t.Fatalf("cross-org app lookup error = %v, want ErrAppNotFound", err)
 	}
+	appList, total, err := apps.ListByOrg(ctx, "org_a", pagination.Slice{Page: 1, PerPage: 1})
+	if err != nil {
+		t.Fatalf("list org_a apps: %v", err)
+	}
+	if total != 1 || len(appList) != 1 || appList[0].ID != "fapp_a" {
+		t.Fatalf("org_a app list = %+v total=%d", appList, total)
+	}
 
 	if err := functions.Create(ctx, &domain.Function{
 		ID: "fn_a", OrgID: "org_a", AppID: "fapp_a", Name: "parse", Entrypoint: "main.parse", Status: domain.FunctionStatusDeploying, CreatedAt: now, ModifiedAt: now,
@@ -61,6 +68,20 @@ func TestFunctionRepositoriesScopeWritesAndReadsByOrg(t *testing.T) {
 	}
 	if _, err := functions.FindByID(ctx, "org_a", "fn_b"); !errors.Is(err, domain.ErrFunctionNotFound) {
 		t.Fatalf("cross-org function lookup error = %v, want ErrFunctionNotFound", err)
+	}
+	functionList, total, err := functions.ListByApp(ctx, "org_a", "fapp_a", pagination.Slice{Page: 1, PerPage: 10})
+	if err != nil {
+		t.Fatalf("list org_a functions: %v", err)
+	}
+	if total != 1 || len(functionList) != 1 || functionList[0].ID != "fn_a" {
+		t.Fatalf("org_a function list = %+v total=%d", functionList, total)
+	}
+	crossOrgFunctions, total, err := functions.ListByApp(ctx, "org_a", "fapp_b", pagination.Slice{Page: 1, PerPage: 10})
+	if err != nil {
+		t.Fatalf("list cross-org functions: %v", err)
+	}
+	if total != 0 || len(crossOrgFunctions) != 0 {
+		t.Fatalf("cross-org function list = %+v total=%d, want none", crossOrgFunctions, total)
 	}
 	if err := functions.Update(ctx, &domain.Function{
 		ID: "fn_b", OrgID: "org_a", AppID: "fapp_a", Name: "stolen", Entrypoint: "main.stolen", Status: domain.FunctionStatusReady, CreatedAt: now, ModifiedAt: now,
@@ -107,6 +128,22 @@ func TestFunctionRepositoriesScopeWritesAndReadsByOrg(t *testing.T) {
 	if _, err := revisions.FindByID(ctx, "org_a", "frev_b"); !errors.Is(err, domain.ErrRevisionNotFound) {
 		t.Fatalf("cross-org revision lookup error = %v, want ErrRevisionNotFound", err)
 	}
+	if err := revisions.Create(ctx, &domain.FunctionRevision{
+		ID: "frev_a_2", OrgID: "org_a", AppID: "fapp_a", FunctionID: "fn_a", Version: 2, Entrypoint: "main.parse",
+		Image:     domain.ImageSpec{Base: "python:3.12-slim"},
+		Runtime:   domain.RuntimeSpec{PythonVersion: "3.12", TimeoutSecs: 60},
+		Security:  domain.SecuritySpec{Sandbox: "container", NetworkPolicy: "deny_all"},
+		CreatedAt: now.Add(time.Minute),
+	}); err != nil {
+		t.Fatalf("create second org_a revision: %v", err)
+	}
+	revisionList, total, err := revisions.ListByFunction(ctx, "org_a", "fn_a", pagination.Slice{Page: 1, PerPage: 1})
+	if err != nil {
+		t.Fatalf("list org_a revisions: %v", err)
+	}
+	if total != 2 || len(revisionList) != 1 || revisionList[0].ID != "frev_a_2" {
+		t.Fatalf("org_a revision list = %+v total=%d", revisionList, total)
+	}
 	if err := builds.Create(ctx, &domain.FunctionBuild{
 		ID: "fbld_a", OrgID: "org_a", AppID: "fapp_a", FunctionID: "fn_a", RevisionID: "frev_a",
 		Status:    domain.BuildStatusQueued,
@@ -140,6 +177,13 @@ func TestFunctionRepositoriesScopeWritesAndReadsByOrg(t *testing.T) {
 	if _, err := builds.FindByID(ctx, "org_b", "fbld_a"); !errors.Is(err, domain.ErrBuildNotFound) {
 		t.Fatalf("cross-org build lookup error = %v, want ErrBuildNotFound", err)
 	}
+	buildList, total, err := builds.ListByRevision(ctx, "org_a", "frev_a", pagination.Slice{Page: 1, PerPage: 10})
+	if err != nil {
+		t.Fatalf("list org_a builds: %v", err)
+	}
+	if total != 1 || len(buildList) != 1 || buildList[0].ID != "fbld_a" {
+		t.Fatalf("org_a build list = %+v total=%d", buildList, total)
+	}
 
 	if err := invocations.Create(ctx, &domain.Invocation{
 		ID: "finv_a", OrgID: "org_a", AppID: "fapp_a", FunctionID: "fn_a", RevisionID: "frev_a",
@@ -164,6 +208,20 @@ func TestFunctionRepositoriesScopeWritesAndReadsByOrg(t *testing.T) {
 	}
 	if _, err := invocations.FindByID(ctx, "org_a", "finv_b"); !errors.Is(err, domain.ErrInvocationNotFound) {
 		t.Fatalf("cross-org invocation lookup error = %v, want ErrInvocationNotFound", err)
+	}
+	if err := invocations.Create(ctx, &domain.Invocation{
+		ID: "finv_a_2", OrgID: "org_a", AppID: "fapp_a", FunctionID: "fn_a", RevisionID: "frev_a_2",
+		Mode: domain.InvocationModeAsync, Status: domain.InvocationStatusSucceeded, Payload: dbtype.JSONMap{"text": "newer"},
+		Attempt: 1, MaxAttempts: 1, CreatedAt: now.Add(time.Minute), ModifiedAt: now.Add(time.Minute),
+	}); err != nil {
+		t.Fatalf("create second org_a invocation: %v", err)
+	}
+	invocationList, total, err := invocations.ListByFunction(ctx, "org_a", "fn_a", pagination.Slice{Page: 1, PerPage: 1})
+	if err != nil {
+		t.Fatalf("list org_a invocations: %v", err)
+	}
+	if total != 2 || len(invocationList) != 1 || invocationList[0].ID != "finv_a_2" {
+		t.Fatalf("org_a invocation list = %+v total=%d", invocationList, total)
 	}
 
 	if err := logs.Append(ctx, &domain.InvocationLog{
@@ -228,6 +286,13 @@ func TestFunctionRepositoriesScopeWritesAndReadsByOrg(t *testing.T) {
 	if pool.OrgID != "org_a" || pool.Capabilities["gpu"] != "H100" {
 		t.Fatalf("runner pool JSON/scope = %+v", pool)
 	}
+	poolList, total, err := pools.ListByOrg(ctx, "org_a", pagination.Slice{Page: 1, PerPage: 10})
+	if err != nil {
+		t.Fatalf("list org_a runner pools: %v", err)
+	}
+	if total != 1 || len(poolList) != 1 || poolList[0].ID != "frpool_a" || poolList[0].BootstrapTokenHash != "hash_a" {
+		t.Fatalf("org_a runner pool list = %+v total=%d", poolList, total)
+	}
 
 	if err := agents.Create(ctx, &domain.RunnerAgent{
 		ID: "fragent_a", OrgID: "org_a", PoolID: "frpool_a", Hostname: "runner-a", PublicKey: "pub-a",
@@ -252,6 +317,17 @@ func TestFunctionRepositoriesScopeWritesAndReadsByOrg(t *testing.T) {
 	}
 	if _, err := agents.FindByID(ctx, "org_a", "fragent_b"); !errors.Is(err, domain.ErrRunnerAgentNotFound) {
 		t.Fatalf("cross-org runner agent lookup error = %v, want ErrRunnerAgentNotFound", err)
+	}
+	heartbeat := now.Add(5 * time.Minute)
+	if _, err := agents.RecordHeartbeat(ctx, "org_a", "fragent_a", heartbeat, heartbeat.Add(time.Hour), dbtype.JSONMap{"runtime": "python3.12"}); err != nil {
+		t.Fatalf("record org_a runner heartbeat: %v", err)
+	}
+	agentList, total, err := agents.ListByPool(ctx, "org_a", "frpool_a", pagination.Slice{Page: 1, PerPage: 10})
+	if err != nil {
+		t.Fatalf("list org_a runner agents: %v", err)
+	}
+	if total != 1 || len(agentList) != 1 || agentList[0].ID != "fragent_a" || agentList[0].LastHeartbeatAt == nil {
+		t.Fatalf("org_a runner agent list = %+v total=%d", agentList, total)
 	}
 }
 

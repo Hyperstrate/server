@@ -196,18 +196,21 @@ func (InvocationLog) TableName() string { return "function_invocation_logs" }
 type AppRepository interface {
 	Create(ctx context.Context, app *App) error
 	FindByID(ctx context.Context, orgID, id string) (*App, error)
+	ListByOrg(ctx context.Context, orgID string, slice pagination.Slice) ([]App, int64, error)
 }
 
 type FunctionRepository interface {
 	Create(ctx context.Context, fn *Function) error
 	CreateWithRevision(ctx context.Context, fn *Function, rev *FunctionRevision) error
 	FindByID(ctx context.Context, orgID, id string) (*Function, error)
+	ListByApp(ctx context.Context, orgID, appID string, slice pagination.Slice) ([]Function, int64, error)
 	Update(ctx context.Context, fn *Function) error
 }
 
 type RevisionRepository interface {
 	Create(ctx context.Context, rev *FunctionRevision) error
 	FindByID(ctx context.Context, orgID, id string) (*FunctionRevision, error)
+	ListByFunction(ctx context.Context, orgID, functionID string, slice pagination.Slice) ([]FunctionRevision, int64, error)
 	SetBuildID(ctx context.Context, orgID, revisionID, buildID string) error
 }
 
@@ -215,6 +218,7 @@ type InvocationRepository interface {
 	Create(ctx context.Context, inv *Invocation) error
 	FindByID(ctx context.Context, orgID, id string) (*Invocation, error)
 	FindByIdempotencyKey(ctx context.Context, orgID, functionID, key string) (*Invocation, error)
+	ListByFunction(ctx context.Context, orgID, functionID string, slice pagination.Slice) ([]Invocation, int64, error)
 	LeaseNextQueued(ctx context.Context, orgID, runnerID, leaseID string, leaseExpiresAt time.Time, selector RunnerSelector) (*Invocation, error)
 	Complete(ctx context.Context, orgID, invocationID, runnerID, leaseID string, status InvocationStatus, result dbtype.JSONMap, errorMessage string, finishedAt time.Time) (*Invocation, error)
 }

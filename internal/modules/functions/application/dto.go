@@ -81,6 +81,7 @@ type RevisionResponse struct {
 	Volumes     []VolumeMountSpec     `json:"volumes,omitempty"`
 	Provider    ProviderPlacementSpec `json:"provider"`
 	BuildID     string                `json:"buildId,omitempty"`
+	Build       *BuildResponse        `json:"build,omitempty"`
 	CreatedAt   time.Time             `json:"createdAt"`
 }
 
@@ -121,6 +122,19 @@ type RunnerLeaseResponse struct {
 	Revision   RevisionResponse   `json:"revision"`
 	Build      *BuildResponse     `json:"build,omitempty"`
 	Execution  ExecutionContract  `json:"execution"`
+}
+
+type RunnerAgentResponse struct {
+	ID               string                   `json:"id"`
+	PoolID           string                   `json:"poolId"`
+	Hostname         string                   `json:"hostname"`
+	PublicKey        string                   `json:"publicKey,omitempty"`
+	Status           domain.RunnerAgentStatus `json:"status"`
+	Capabilities     dbtype.JSONMap           `json:"capabilities,omitempty"`
+	SessionExpiresAt time.Time                `json:"sessionExpiresAt"`
+	LastHeartbeatAt  *time.Time               `json:"lastHeartbeatAt,omitempty"`
+	CreatedAt        time.Time                `json:"createdAt"`
+	ModifiedAt       time.Time                `json:"modifiedAt"`
 }
 
 type ExecutionContract struct {
@@ -187,6 +201,15 @@ func toRevisionResponse(rev *domain.FunctionRevision) RevisionResponse {
 	}
 }
 
+func toRevisionResponseWithBuild(rev *domain.FunctionRevision, build *domain.FunctionBuild) RevisionResponse {
+	resp := toRevisionResponse(rev)
+	if build != nil {
+		buildResp := toBuildResponse(build)
+		resp.Build = &buildResp
+	}
+	return resp
+}
+
 func toInvocationResponse(inv *domain.Invocation) InvocationResponse {
 	return InvocationResponse{
 		ID:             inv.ID,
@@ -220,5 +243,20 @@ func toLogResponse(log *domain.InvocationLog) LogResponse {
 		Message:      log.Message,
 		Truncated:    log.Truncated,
 		CreatedAt:    log.CreatedAt,
+	}
+}
+
+func toRunnerAgentResponse(agent *domain.RunnerAgent) RunnerAgentResponse {
+	return RunnerAgentResponse{
+		ID:               agent.ID,
+		PoolID:           agent.PoolID,
+		Hostname:         agent.Hostname,
+		PublicKey:        agent.PublicKey,
+		Status:           agent.Status,
+		Capabilities:     agent.Capabilities,
+		SessionExpiresAt: agent.SessionExpiresAt,
+		LastHeartbeatAt:  agent.LastHeartbeatAt,
+		CreatedAt:        agent.CreatedAt,
+		ModifiedAt:       agent.ModifiedAt,
 	}
 }

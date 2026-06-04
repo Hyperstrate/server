@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"hyperstrate/server/internal/shared/dbtype"
+	"hyperstrate/server/internal/shared/pagination"
 )
 
 var (
@@ -65,6 +66,7 @@ func (RunnerAgent) TableName() string { return "function_runner_agents" }
 type RunnerPoolRepository interface {
 	Create(ctx context.Context, pool *RunnerPool) error
 	FindByID(ctx context.Context, id string) (*RunnerPool, error)
+	ListByOrg(ctx context.Context, orgID string, slice pagination.Slice) ([]RunnerPool, int64, error)
 	ConsumeBootstrapToken(ctx context.Context, id, tokenHash string, consumedAt time.Time) (*RunnerPool, error)
 }
 
@@ -72,5 +74,6 @@ type RunnerAgentRepository interface {
 	Create(ctx context.Context, agent *RunnerAgent) error
 	FindByID(ctx context.Context, orgID, id string) (*RunnerAgent, error)
 	FindBySessionTokenHash(ctx context.Context, hash string) (*RunnerAgent, error)
+	ListByPool(ctx context.Context, orgID, poolID string, slice pagination.Slice) ([]RunnerAgent, int64, error)
 	RecordHeartbeat(ctx context.Context, orgID, id string, heartbeatAt, sessionExpiresAt time.Time, capabilities dbtype.JSONMap) (*RunnerAgent, error)
 }

@@ -11,7 +11,7 @@ import (
 
 func TestBuildServiceCreatesBuildAndLinksRevision(t *testing.T) {
 	repos := newMemoryRepos()
-	svc := application.NewService(repos.Apps, repos.Functions, repos.Revisions, repos.Invocations, repos.Logs)
+	svc := application.NewService(repos.Apps, repos.Functions, repos.Revisions, repos.Builds, repos.Invocations, repos.Logs)
 	buildSvc := application.NewBuildService(repos.Builds, repos.Revisions)
 	ctx := functionsCtx()
 

@@ -31,9 +31,16 @@ type ErrorResponse struct {
 
 // RegisterAdminRoutes mounts admin-managed routes (requires session + admin role).
 func (h *Handler) RegisterAdminRoutes(r gin.IRoutes) {
+	r.GET("/apps", h.ListApps)
 	r.POST("/apps", h.CreateApp)
+	r.GET("/apps/:appId/functions", h.ListFunctions)
 	r.POST("/apps/:appId/functions", h.DeployFunction)
+	r.GET("/functions/:functionId", h.GetFunction)
+	r.GET("/functions/:functionId/revisions", h.ListFunctionRevisions)
+	r.GET("/functions/:functionId/invocations", h.ListFunctionInvocations)
+	r.GET("/runner-pools", h.ListRunnerPools)
 	r.POST("/runner-pools", h.CreateRunnerPool)
+	r.GET("/runner-pools/:poolId/agents", h.ListRunnerAgents)
 }
 
 // RegisterInferRoutes mounts runtime routes (requires API key or session auth).
@@ -50,6 +57,27 @@ func (h *Handler) RegisterRunnerRoutes(r gin.IRoutes) {
 	r.POST("/runner/invocations/lease", h.LeaseNextInvocation)
 	r.POST("/runner/invocations/:invocationId/logs", h.AppendInvocationLog)
 	r.POST("/runner/invocations/:invocationId/complete", h.CompleteInvocation)
+}
+
+// ListApps godoc
+// @Summary     List functions apps
+// @Description Returns paginated functions apps owned by the authenticated organisation
+// @Tags        hyperstrate
+// @Tags        functions
+// @Produce     json
+// @Param       page     query     int  false  "Page number (default 1)"
+// @Param       perPage  query     int  false  "Items per page (default 30, max 500)"
+// @Success     200      {object}  pagination.Paginated[application.AppResponse]
+// @Failure     400      {object}  ErrorResponse
+// @Security    BearerAuth
+// @Router      /functions/apps [get]
+func (h *Handler) ListApps(c *gin.Context) {
+	result, err := h.svc.ListApps(c.Request.Context(), pagination.ParseSlice(c))
+	if err != nil {
+		respondError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, result)
 }
 
 // CreateApp godoc
@@ -76,6 +104,33 @@ func (h *Handler) CreateApp(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusCreated, result)
+}
+
+// ListFunctions godoc
+// @Summary     List app functions
+// @Description Returns paginated functions under an app
+// @Tags        hyperstrate
+// @Tags        functions
+// @Produce     json
+// @Param       appId    path      string  true   "Functions app ID"
+// @Param       page     query     int     false  "Page number (default 1)"
+// @Param       perPage  query     int     false  "Items per page (default 30, max 500)"
+// @Success     200      {object}  pagination.Paginated[application.FunctionResponse]
+// @Failure     400      {object}  ErrorResponse
+// @Failure     404      {object}  ErrorResponse
+// @Security    BearerAuth
+// @Router      /functions/apps/{appId}/functions [get]
+func (h *Handler) ListFunctions(c *gin.Context) {
+	appID, ok := validateParam(c, "appId")
+	if !ok {
+		return
+	}
+	result, err := h.svc.ListFunctions(c.Request.Context(), appID, pagination.ParseSlice(c))
+	if err != nil {
+		respondError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, result)
 }
 
 // DeployFunction godoc
@@ -110,6 +165,58 @@ func (h *Handler) DeployFunction(c *gin.Context) {
 	c.JSON(http.StatusCreated, result)
 }
 
+// GetFunction godoc
+// @Summary     Get a function
+// @Description Returns function metadata by ID
+// @Tags        hyperstrate
+// @Tags        functions
+// @Produce     json
+// @Param       functionId  path      string  true  "Function ID"
+// @Success     200         {object}  application.FunctionResponse
+// @Failure     400         {object}  ErrorResponse
+// @Failure     404         {object}  ErrorResponse
+// @Security    BearerAuth
+// @Router      /functions/functions/{functionId} [get]
+func (h *Handler) GetFunction(c *gin.Context) {
+	functionID, ok := validateParam(c, "functionId")
+	if !ok {
+		return
+	}
+	result, err := h.svc.GetFunction(c.Request.Context(), functionID)
+	if err != nil {
+		respondError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, result)
+}
+
+// ListFunctionRevisions godoc
+// @Summary     List function revisions
+// @Description Returns paginated function revisions, latest first, including linked build details when available
+// @Tags        hyperstrate
+// @Tags        functions
+// @Produce     json
+// @Param       functionId  path      string  true   "Function ID"
+// @Param       page        query     int     false  "Page number (default 1)"
+// @Param       perPage     query     int     false  "Items per page (default 30, max 500)"
+// @Success     200         {object}  pagination.Paginated[application.RevisionResponse]
+// @Failure     400         {object}  ErrorResponse
+// @Failure     404         {object}  ErrorResponse
+// @Security    BearerAuth
+// @Router      /functions/functions/{functionId}/revisions [get]
+func (h *Handler) ListFunctionRevisions(c *gin.Context) {
+	functionID, ok := validateParam(c, "functionId")
+	if !ok {
+		return
+	}
+	result, err := h.svc.ListFunctionRevisions(c.Request.Context(), functionID, pagination.ParseSlice(c))
+	if err != nil {
+		respondError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, result)
+}
+
 // InvokeFunction godoc
 // @Summary     Invoke a function
 // @Description Queues a function invocation
@@ -140,6 +247,33 @@ func (h *Handler) InvokeFunction(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusAccepted, result)
+}
+
+// ListFunctionInvocations godoc
+// @Summary     List function invocations
+// @Description Returns paginated function invocations, latest first
+// @Tags        hyperstrate
+// @Tags        functions
+// @Produce     json
+// @Param       functionId  path      string  true   "Function ID"
+// @Param       page        query     int     false  "Page number (default 1)"
+// @Param       perPage     query     int     false  "Items per page (default 30, max 500)"
+// @Success     200         {object}  pagination.Paginated[application.InvocationResponse]
+// @Failure     400         {object}  ErrorResponse
+// @Failure     404         {object}  ErrorResponse
+// @Security    BearerAuth
+// @Router      /functions/functions/{functionId}/invocations [get]
+func (h *Handler) ListFunctionInvocations(c *gin.Context) {
+	functionID, ok := validateParam(c, "functionId")
+	if !ok {
+		return
+	}
+	result, err := h.svc.ListFunctionInvocations(c.Request.Context(), functionID, pagination.ParseSlice(c))
+	if err != nil {
+		respondError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, result)
 }
 
 // GetInvocation godoc
@@ -228,6 +362,27 @@ func (h *Handler) AppendInvocationLog(c *gin.Context) {
 	c.JSON(http.StatusCreated, result)
 }
 
+// ListRunnerPools godoc
+// @Summary     List runner pools
+// @Description Returns paginated runner pools owned by the authenticated organisation
+// @Tags        hyperstrate
+// @Tags        functions
+// @Produce     json
+// @Param       page     query     int  false  "Page number (default 1)"
+// @Param       perPage  query     int  false  "Items per page (default 30, max 500)"
+// @Success     200      {object}  pagination.Paginated[application.RunnerPoolResponse]
+// @Failure     400      {object}  ErrorResponse
+// @Security    BearerAuth
+// @Router      /functions/runner-pools [get]
+func (h *Handler) ListRunnerPools(c *gin.Context) {
+	result, err := h.runnerSvc.ListRunnerPools(c.Request.Context(), pagination.ParseSlice(c))
+	if err != nil {
+		respondError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, result)
+}
+
 // CreateRunnerPool godoc
 // @Summary     Create a runner pool
 // @Description Creates a runner pool and returns its one-time bootstrap token
@@ -252,6 +407,33 @@ func (h *Handler) CreateRunnerPool(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusCreated, result)
+}
+
+// ListRunnerAgents godoc
+// @Summary     List runner agents
+// @Description Returns paginated runner agents for a runner pool
+// @Tags        hyperstrate
+// @Tags        functions
+// @Produce     json
+// @Param       poolId   path      string  true   "Runner pool ID"
+// @Param       page     query     int     false  "Page number (default 1)"
+// @Param       perPage  query     int     false  "Items per page (default 30, max 500)"
+// @Success     200      {object}  pagination.Paginated[application.RunnerAgentResponse]
+// @Failure     400      {object}  ErrorResponse
+// @Failure     404      {object}  ErrorResponse
+// @Security    BearerAuth
+// @Router      /functions/runner-pools/{poolId}/agents [get]
+func (h *Handler) ListRunnerAgents(c *gin.Context) {
+	poolID, ok := validateParam(c, "poolId")
+	if !ok {
+		return
+	}
+	result, err := h.runnerSvc.ListRunnerAgents(c.Request.Context(), poolID, pagination.ParseSlice(c))
+	if err != nil {
+		respondError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, result)
 }
 
 // RegisterRunnerAgent godoc

@@ -822,6 +822,57 @@ definitions:
       scaleDownAfterSecs:
         type: integer
     type: object
+  hyperstrate_server_internal_modules_functions_application.BuildArtifactSpec:
+    properties:
+      digest:
+        type: string
+      imageRef:
+        type: string
+      sizeBytes:
+        type: integer
+      sourceArchiveRef:
+        type: string
+    type: object
+  hyperstrate_server_internal_modules_functions_application.BuildResponse:
+    properties:
+      appId:
+        type: string
+      artifact:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_functions_application.BuildArtifactSpec'
+      createdAt:
+        type: string
+      error:
+        type: string
+      finishedAt:
+        type: string
+      functionId:
+        type: string
+      id:
+        type: string
+      modifiedAt:
+        type: string
+      revisionId:
+        type: string
+      source:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_functions_application.BuildSourceSpec'
+      startedAt:
+        type: string
+      status:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_functions_domain.BuildStatus'
+    type: object
+  hyperstrate_server_internal_modules_functions_application.BuildSourceSpec:
+    properties:
+      digest:
+        type: string
+      rootDir:
+        type: string
+      sizeBytes:
+        type: integer
+      type:
+        type: string
+      uri:
+        type: string
+    type: object
   hyperstrate_server_internal_modules_functions_application.CompleteInvocationInput:
     properties:
       agentId:
@@ -1070,6 +1121,43 @@ definitions:
     - poolId
     - publicKey
     type: object
+  hyperstrate_server_internal_modules_functions_application.RevisionResponse:
+    properties:
+      appId:
+        type: string
+      autoscaling:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_functions_application.AutoscalingSpec'
+      build:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_functions_application.BuildResponse'
+      buildId:
+        type: string
+      createdAt:
+        type: string
+      entrypoint:
+        type: string
+      functionId:
+        type: string
+      id:
+        type: string
+      image:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_functions_application.ImageSpec'
+      provider:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_functions_application.ProviderPlacementSpec'
+      runtime:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_functions_application.RuntimeSpec'
+      secrets:
+        items:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_functions_application.SecretMountSpec'
+        type: array
+      security:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_functions_application.SecuritySpec'
+      version:
+        type: integer
+      volumes:
+        items:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_functions_application.VolumeMountSpec'
+        type: array
+    type: object
   hyperstrate_server_internal_modules_functions_application.RunnerAgentHeartbeatResponse:
     properties:
       capabilities:
@@ -1100,13 +1188,40 @@ definitions:
       status:
         $ref: '#/definitions/hyperstrate_server_internal_modules_functions_domain.RunnerAgentStatus'
     type: object
+  hyperstrate_server_internal_modules_functions_application.RunnerAgentResponse:
+    properties:
+      capabilities:
+        $ref: '#/definitions/hyperstrate_server_internal_shared_dbtype.JSONMap'
+      createdAt:
+        type: string
+      hostname:
+        type: string
+      id:
+        type: string
+      lastHeartbeatAt:
+        type: string
+      modifiedAt:
+        type: string
+      poolId:
+        type: string
+      publicKey:
+        type: string
+      sessionExpiresAt:
+        type: string
+      status:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_functions_domain.RunnerAgentStatus'
+    type: object
   hyperstrate_server_internal_modules_functions_application.RunnerPoolResponse:
     properties:
       bootstrapToken:
         type: string
       capabilities:
         $ref: '#/definitions/hyperstrate_server_internal_shared_dbtype.JSONMap'
+      createdAt:
+        type: string
       id:
+        type: string
+      modifiedAt:
         type: string
       name:
         type: string
@@ -1161,6 +1276,18 @@ definitions:
       readOnly:
         type: boolean
     type: object
+  hyperstrate_server_internal_modules_functions_domain.BuildStatus:
+    enum:
+    - queued
+    - building
+    - succeeded
+    - failed
+    type: string
+    x-enum-varnames:
+    - BuildStatusQueued
+    - BuildStatusBuilding
+    - BuildStatusSucceeded
+    - BuildStatusFailed
   hyperstrate_server_internal_modules_functions_domain.FunctionStatus:
     enum:
     - deploying
@@ -2579,11 +2706,83 @@ definitions:
     - items
     - meta
     type: object
+  hyperstrate_server_internal_shared_pagination.Paginated-hyperstrate_server_internal_modules_functions_application_AppResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_functions_application.AppResponse'
+        type: array
+      meta:
+        $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.PaginatedMeta'
+    required:
+    - items
+    - meta
+    type: object
+  ? hyperstrate_server_internal_shared_pagination.Paginated-hyperstrate_server_internal_modules_functions_application_FunctionResponse
+  : properties:
+      items:
+        items:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_functions_application.FunctionResponse'
+        type: array
+      meta:
+        $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.PaginatedMeta'
+    required:
+    - items
+    - meta
+    type: object
+  ? hyperstrate_server_internal_shared_pagination.Paginated-hyperstrate_server_internal_modules_functions_application_InvocationResponse
+  : properties:
+      items:
+        items:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_functions_application.InvocationResponse'
+        type: array
+      meta:
+        $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.PaginatedMeta'
+    required:
+    - items
+    - meta
+    type: object
   hyperstrate_server_internal_shared_pagination.Paginated-hyperstrate_server_internal_modules_functions_application_LogResponse:
     properties:
       items:
         items:
           $ref: '#/definitions/hyperstrate_server_internal_modules_functions_application.LogResponse'
+        type: array
+      meta:
+        $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.PaginatedMeta'
+    required:
+    - items
+    - meta
+    type: object
+  ? hyperstrate_server_internal_shared_pagination.Paginated-hyperstrate_server_internal_modules_functions_application_RevisionResponse
+  : properties:
+      items:
+        items:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_functions_application.RevisionResponse'
+        type: array
+      meta:
+        $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.PaginatedMeta'
+    required:
+    - items
+    - meta
+    type: object
+  ? hyperstrate_server_internal_shared_pagination.Paginated-hyperstrate_server_internal_modules_functions_application_RunnerAgentResponse
+  : properties:
+      items:
+        items:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_functions_application.RunnerAgentResponse'
+        type: array
+      meta:
+        $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.PaginatedMeta'
+    required:
+    - items
+    - meta
+    type: object
+  ? hyperstrate_server_internal_shared_pagination.Paginated-hyperstrate_server_internal_modules_functions_application_RunnerPoolResponse
+  : properties:
+      items:
+        items:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_functions_application.RunnerPoolResponse'
         type: array
       meta:
         $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.PaginatedMeta'
@@ -6119,6 +6318,34 @@ paths:
       - hyperstrate
       - functions
   /functions/apps:
+    get:
+      description: Returns paginated functions apps owned by the authenticated organisation
+      parameters:
+      - description: Page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Items per page (default 30, max 500)
+        in: query
+        name: perPage
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.Paginated-hyperstrate_server_internal_modules_functions_application_AppResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_functions_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List functions apps
+      tags:
+      - hyperstrate
+      - functions
     post:
       consumes:
       - application/json
@@ -6148,6 +6375,43 @@ paths:
       - hyperstrate
       - functions
   /functions/apps/{appId}/functions:
+    get:
+      description: Returns paginated functions under an app
+      parameters:
+      - description: Functions app ID
+        in: path
+        name: appId
+        required: true
+        type: string
+      - description: Page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Items per page (default 30, max 500)
+        in: query
+        name: perPage
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.Paginated-hyperstrate_server_internal_modules_functions_application_FunctionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_functions_interfaces_http.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_functions_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List app functions
+      tags:
+      - hyperstrate
+      - functions
     post:
       consumes:
       - application/json
@@ -6182,6 +6446,113 @@ paths:
       security:
       - BearerAuth: []
       summary: Deploy a function
+      tags:
+      - hyperstrate
+      - functions
+  /functions/functions/{functionId}:
+    get:
+      description: Returns function metadata by ID
+      parameters:
+      - description: Function ID
+        in: path
+        name: functionId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_functions_application.FunctionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_functions_interfaces_http.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_functions_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a function
+      tags:
+      - hyperstrate
+      - functions
+  /functions/functions/{functionId}/invocations:
+    get:
+      description: Returns paginated function invocations, latest first
+      parameters:
+      - description: Function ID
+        in: path
+        name: functionId
+        required: true
+        type: string
+      - description: Page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Items per page (default 30, max 500)
+        in: query
+        name: perPage
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.Paginated-hyperstrate_server_internal_modules_functions_application_InvocationResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_functions_interfaces_http.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_functions_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List function invocations
+      tags:
+      - hyperstrate
+      - functions
+  /functions/functions/{functionId}/revisions:
+    get:
+      description: Returns paginated function revisions, latest first, including linked
+        build details when available
+      parameters:
+      - description: Function ID
+        in: path
+        name: functionId
+        required: true
+        type: string
+      - description: Page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Items per page (default 30, max 500)
+        in: query
+        name: perPage
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.Paginated-hyperstrate_server_internal_modules_functions_application_RevisionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_functions_interfaces_http.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_functions_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List function revisions
       tags:
       - hyperstrate
       - functions
@@ -6254,6 +6625,34 @@ paths:
       - hyperstrate
       - functions
   /functions/runner-pools:
+    get:
+      description: Returns paginated runner pools owned by the authenticated organisation
+      parameters:
+      - description: Page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Items per page (default 30, max 500)
+        in: query
+        name: perPage
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.Paginated-hyperstrate_server_internal_modules_functions_application_RunnerPoolResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_functions_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List runner pools
+      tags:
+      - hyperstrate
+      - functions
     post:
       consumes:
       - application/json
@@ -6279,6 +6678,44 @@ paths:
       security:
       - BearerAuth: []
       summary: Create a runner pool
+      tags:
+      - hyperstrate
+      - functions
+  /functions/runner-pools/{poolId}/agents:
+    get:
+      description: Returns paginated runner agents for a runner pool
+      parameters:
+      - description: Runner pool ID
+        in: path
+        name: poolId
+        required: true
+        type: string
+      - description: Page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Items per page (default 30, max 500)
+        in: query
+        name: perPage
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.Paginated-hyperstrate_server_internal_modules_functions_application_RunnerAgentResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_functions_interfaces_http.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_functions_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List runner agents
       tags:
       - hyperstrate
       - functions

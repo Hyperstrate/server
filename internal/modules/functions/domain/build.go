@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"time"
+
+	"hyperstrate/server/internal/shared/pagination"
 )
 
 var (
@@ -56,5 +58,7 @@ func (FunctionBuild) TableName() string { return "function_builds" }
 type BuildRepository interface {
 	Create(ctx context.Context, build *FunctionBuild) error
 	FindByID(ctx context.Context, orgID, id string) (*FunctionBuild, error)
+	ListByRevision(ctx context.Context, orgID, revisionID string, slice pagination.Slice) ([]FunctionBuild, int64, error)
+	ListByFunction(ctx context.Context, orgID, functionID string, slice pagination.Slice) ([]FunctionBuild, int64, error)
 	Update(ctx context.Context, build *FunctionBuild) error
 }
