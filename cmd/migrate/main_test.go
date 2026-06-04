@@ -27,6 +27,14 @@ func TestSchemaForDialectIncludesAllPersistedTables(t *testing.T) {
 		"agent_session_events",
 		"tool_call_archives",
 		"compression_events",
+		"function_apps",
+		"functions",
+		"function_revisions",
+		"function_builds",
+		"function_invocations",
+		"function_invocation_logs",
+		"function_runner_pools",
+		"function_runner_agents",
 	} {
 		if !strings.Contains(stmts, table) {
 			t.Fatalf("generated schema missing table %q", table)

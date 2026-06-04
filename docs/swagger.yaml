@@ -771,6 +771,468 @@ definitions:
     x-enum-varnames:
     - UserRoleAdmin
     - UserRoleMember
+  hyperstrate_server_internal_modules_functions_application.AppResponse:
+    properties:
+      createdAt:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      modifiedAt:
+        type: string
+      name:
+        type: string
+    type: object
+  hyperstrate_server_internal_modules_functions_application.AppendRunnerLogInput:
+    properties:
+      agentId:
+        type: string
+      leaseId:
+        type: string
+      message:
+        type: string
+      seq:
+        minimum: 0
+        type: integer
+      sessionToken:
+        type: string
+      stream:
+        allOf:
+        - $ref: '#/definitions/hyperstrate_server_internal_modules_functions_domain.LogStream'
+        enum:
+        - stdout
+        - stderr
+        - system
+      truncated:
+        type: boolean
+    required:
+    - leaseId
+    - message
+    - stream
+    type: object
+  hyperstrate_server_internal_modules_functions_application.AutoscalingSpec:
+    properties:
+      maxConcurrency:
+        type: integer
+      maxContainers:
+        type: integer
+      minContainers:
+        type: integer
+      scaleDownAfterSecs:
+        type: integer
+    type: object
+  hyperstrate_server_internal_modules_functions_application.CompleteInvocationInput:
+    properties:
+      agentId:
+        type: string
+      error:
+        maxLength: 4000
+        type: string
+      leaseId:
+        type: string
+      result:
+        additionalProperties: {}
+        type: object
+      sessionToken:
+        type: string
+      status:
+        allOf:
+        - $ref: '#/definitions/hyperstrate_server_internal_modules_functions_domain.InvocationStatus'
+        enum:
+        - running
+        - succeeded
+        - failed
+        - timed_out
+        - canceled
+    required:
+    - leaseId
+    - status
+    type: object
+  hyperstrate_server_internal_modules_functions_application.CreateAppInput:
+    properties:
+      description:
+        maxLength: 2000
+        type: string
+      name:
+        maxLength: 255
+        type: string
+    required:
+    - name
+    type: object
+  hyperstrate_server_internal_modules_functions_application.CreateRunnerPoolInput:
+    properties:
+      capabilities:
+        additionalProperties: {}
+        type: object
+      name:
+        maxLength: 255
+        type: string
+      provider:
+        maxLength: 100
+        type: string
+      region:
+        maxLength: 100
+        type: string
+    required:
+    - name
+    - provider
+    type: object
+  hyperstrate_server_internal_modules_functions_application.DeployFunctionInput:
+    properties:
+      autoscaling:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_functions_application.AutoscalingSpec'
+      entrypoint:
+        maxLength: 512
+        type: string
+      image:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_functions_application.ImageSpec'
+      name:
+        maxLength: 255
+        type: string
+      provider:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_functions_application.ProviderPlacementSpec'
+      runtime:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_functions_application.RuntimeSpec'
+      secrets:
+        items:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_functions_application.SecretMountSpec'
+        type: array
+      security:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_functions_application.SecuritySpec'
+      volumes:
+        items:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_functions_application.VolumeMountSpec'
+        type: array
+    required:
+    - entrypoint
+    - image
+    - name
+    type: object
+  hyperstrate_server_internal_modules_functions_application.FunctionResponse:
+    properties:
+      activeRevisionId:
+        type: string
+      appId:
+        type: string
+      createdAt:
+        type: string
+      entrypoint:
+        type: string
+      id:
+        type: string
+      modifiedAt:
+        type: string
+      name:
+        type: string
+      status:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_functions_domain.FunctionStatus'
+    type: object
+  hyperstrate_server_internal_modules_functions_application.HeartbeatRunnerAgentInput:
+    properties:
+      agentId:
+        type: string
+      capabilities:
+        additionalProperties: {}
+        type: object
+      sessionToken:
+        type: string
+    type: object
+  hyperstrate_server_internal_modules_functions_application.ImageSpec:
+    properties:
+      base:
+        type: string
+      commands:
+        items:
+          type: string
+        type: array
+      packages:
+        items:
+          type: string
+        type: array
+    type: object
+  hyperstrate_server_internal_modules_functions_application.InvocationResponse:
+    properties:
+      appId:
+        type: string
+      attempt:
+        type: integer
+      createdAt:
+        type: string
+      error:
+        type: string
+      finishedAt:
+        type: string
+      functionId:
+        type: string
+      id:
+        type: string
+      idempotencyKey:
+        type: string
+      leaseExpiresAt:
+        type: string
+      leaseId:
+        type: string
+      maxAttempts:
+        type: integer
+      mode:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_functions_domain.InvocationMode'
+      modifiedAt:
+        type: string
+      payload:
+        $ref: '#/definitions/hyperstrate_server_internal_shared_dbtype.JSONMap'
+      result:
+        $ref: '#/definitions/hyperstrate_server_internal_shared_dbtype.JSONMap'
+      revisionId:
+        type: string
+      runnerId:
+        type: string
+      startedAt:
+        type: string
+      status:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_functions_domain.InvocationStatus'
+    type: object
+  hyperstrate_server_internal_modules_functions_application.InvokeFunctionInput:
+    properties:
+      idempotencyKey:
+        maxLength: 255
+        type: string
+      maxAttempts:
+        maximum: 100
+        minimum: 0
+        type: integer
+      mode:
+        allOf:
+        - $ref: '#/definitions/hyperstrate_server_internal_modules_functions_domain.InvocationMode'
+        enum:
+        - async
+      payload:
+        additionalProperties: {}
+        type: object
+    type: object
+  hyperstrate_server_internal_modules_functions_application.LeaseInvocationInput:
+    properties:
+      agentId:
+        type: string
+      leaseSecs:
+        maximum: 3600
+        minimum: 0
+        type: integer
+      sessionToken:
+        type: string
+    type: object
+  hyperstrate_server_internal_modules_functions_application.LogResponse:
+    properties:
+      createdAt:
+        type: string
+      id:
+        type: string
+      invocationId:
+        type: string
+      message:
+        type: string
+      seq:
+        type: integer
+      stream:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_functions_domain.LogStream'
+      truncated:
+        type: boolean
+    type: object
+  hyperstrate_server_internal_modules_functions_application.ProviderPlacementSpec:
+    properties:
+      allowedProviders:
+        items:
+          type: string
+        type: array
+      regions:
+        items:
+          type: string
+        type: array
+      strategy:
+        type: string
+    type: object
+  hyperstrate_server_internal_modules_functions_application.RegisterRunnerAgentInput:
+    properties:
+      bootstrapToken:
+        type: string
+      capabilities:
+        additionalProperties: {}
+        type: object
+      hostname:
+        maxLength: 255
+        type: string
+      poolId:
+        type: string
+      publicKey:
+        type: string
+    required:
+    - bootstrapToken
+    - poolId
+    - publicKey
+    type: object
+  hyperstrate_server_internal_modules_functions_application.RunnerAgentHeartbeatResponse:
+    properties:
+      capabilities:
+        $ref: '#/definitions/hyperstrate_server_internal_shared_dbtype.JSONMap'
+      id:
+        type: string
+      lastHeartbeatAt:
+        type: string
+      poolId:
+        type: string
+      sessionExpiresAt:
+        type: string
+      status:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_functions_domain.RunnerAgentStatus'
+    type: object
+  hyperstrate_server_internal_modules_functions_application.RunnerAgentRegistrationResponse:
+    properties:
+      capabilities:
+        $ref: '#/definitions/hyperstrate_server_internal_shared_dbtype.JSONMap'
+      hostname:
+        type: string
+      id:
+        type: string
+      poolId:
+        type: string
+      sessionToken:
+        type: string
+      status:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_functions_domain.RunnerAgentStatus'
+    type: object
+  hyperstrate_server_internal_modules_functions_application.RunnerPoolResponse:
+    properties:
+      bootstrapToken:
+        type: string
+      capabilities:
+        $ref: '#/definitions/hyperstrate_server_internal_shared_dbtype.JSONMap'
+      id:
+        type: string
+      name:
+        type: string
+      provider:
+        type: string
+      region:
+        type: string
+      status:
+        $ref: '#/definitions/hyperstrate_server_internal_modules_functions_domain.RunnerPoolStatus'
+    type: object
+  hyperstrate_server_internal_modules_functions_application.RuntimeSpec:
+    properties:
+      cpu:
+        type: string
+      gpu:
+        type: string
+      memoryMb:
+        type: integer
+      pythonVersion:
+        type: string
+      timeoutSecs:
+        type: integer
+    type: object
+  hyperstrate_server_internal_modules_functions_application.SecretMountSpec:
+    properties:
+      env:
+        type: string
+      name:
+        type: string
+    type: object
+  hyperstrate_server_internal_modules_functions_application.SecuritySpec:
+    properties:
+      allowOutboundHosts:
+        items:
+          type: string
+        type: array
+      networkPolicy:
+        type: string
+      readOnlyRootFs:
+        type: boolean
+      runAsNonRoot:
+        type: boolean
+      sandbox:
+        type: string
+    type: object
+  hyperstrate_server_internal_modules_functions_application.VolumeMountSpec:
+    properties:
+      mountPath:
+        type: string
+      name:
+        type: string
+      readOnly:
+        type: boolean
+    type: object
+  hyperstrate_server_internal_modules_functions_domain.FunctionStatus:
+    enum:
+    - deploying
+    - ready
+    - failed
+    type: string
+    x-enum-varnames:
+    - FunctionStatusDeploying
+    - FunctionStatusReady
+    - FunctionStatusFailed
+  hyperstrate_server_internal_modules_functions_domain.InvocationMode:
+    enum:
+    - sync
+    - async
+    type: string
+    x-enum-varnames:
+    - InvocationModeSync
+    - InvocationModeAsync
+  hyperstrate_server_internal_modules_functions_domain.InvocationStatus:
+    enum:
+    - queued
+    - assigned
+    - starting
+    - running
+    - succeeded
+    - failed
+    - canceled
+    - timed_out
+    - expired
+    - retrying
+    - dead_lettered
+    type: string
+    x-enum-varnames:
+    - InvocationStatusQueued
+    - InvocationStatusAssigned
+    - InvocationStatusStarting
+    - InvocationStatusRunning
+    - InvocationStatusSucceeded
+    - InvocationStatusFailed
+    - InvocationStatusCanceled
+    - InvocationStatusTimedOut
+    - InvocationStatusExpired
+    - InvocationStatusRetrying
+    - InvocationStatusDeadLettered
+  hyperstrate_server_internal_modules_functions_domain.LogStream:
+    enum:
+    - stdout
+    - stderr
+    - system
+    type: string
+    x-enum-varnames:
+    - LogStreamStdout
+    - LogStreamStderr
+    - LogStreamSystem
+  hyperstrate_server_internal_modules_functions_domain.RunnerAgentStatus:
+    enum:
+    - online
+    - offline
+    - revoked
+    type: string
+    x-enum-varnames:
+    - RunnerAgentStatusOnline
+    - RunnerAgentStatusOffline
+    - RunnerAgentStatusRevoked
+  hyperstrate_server_internal_modules_functions_domain.RunnerPoolStatus:
+    enum:
+    - active
+    - revoked
+    type: string
+    x-enum-varnames:
+    - RunnerPoolStatusActive
+    - RunnerPoolStatusRevoked
   hyperstrate_server_internal_modules_observability_domain.ABVariantStats:
     properties:
       avgLatencyMs:
@@ -2117,6 +2579,18 @@ definitions:
     - items
     - meta
     type: object
+  hyperstrate_server_internal_shared_pagination.Paginated-hyperstrate_server_internal_modules_functions_application_LogResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_functions_application.LogResponse'
+        type: array
+      meta:
+        $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.PaginatedMeta'
+    required:
+    - items
+    - meta
+    type: object
   ? hyperstrate_server_internal_shared_pagination.Paginated-hyperstrate_server_internal_modules_observability_domain_AgentSessionEvent
   : properties:
       items:
@@ -2566,6 +3040,17 @@ definitions:
     - resetPeriod
     - routerId
     - teamId
+    type: object
+  internal_modules_functions_interfaces_http.ErrorResponse:
+    properties:
+      error:
+        type: string
+      fields:
+        additionalProperties:
+          items:
+            type: string
+          type: array
+        type: object
     type: object
   internal_modules_observability_interfaces_http.InferenceLogResponse:
     properties:
@@ -5595,6 +6080,383 @@ paths:
       tags:
       - hyperstrate
       - auth
+  /functions/{functionId}/invocations:
+    post:
+      consumes:
+      - application/json
+      description: Queues a function invocation
+      parameters:
+      - description: Function ID
+        in: path
+        name: functionId
+        required: true
+        type: string
+      - description: Invocation request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_functions_application.InvokeFunctionInput'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_functions_application.InvocationResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_functions_interfaces_http.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_functions_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Invoke a function
+      tags:
+      - hyperstrate
+      - functions
+  /functions/apps:
+    post:
+      consumes:
+      - application/json
+      description: Creates a functions app owned by the authenticated organisation
+      parameters:
+      - description: App input
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_functions_application.CreateAppInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_functions_application.AppResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_functions_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a functions app
+      tags:
+      - hyperstrate
+      - functions
+  /functions/apps/{appId}/functions:
+    post:
+      consumes:
+      - application/json
+      description: Creates a function and first revision under an app
+      parameters:
+      - description: Functions app ID
+        in: path
+        name: appId
+        required: true
+        type: string
+      - description: Function deployment
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_functions_application.DeployFunctionInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_functions_application.FunctionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_functions_interfaces_http.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_functions_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Deploy a function
+      tags:
+      - hyperstrate
+      - functions
+  /functions/invocations/{invocationId}:
+    get:
+      description: Returns a function invocation by ID
+      parameters:
+      - description: Invocation ID
+        in: path
+        name: invocationId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_functions_application.InvocationResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_functions_interfaces_http.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_functions_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get an invocation
+      tags:
+      - hyperstrate
+      - functions
+  /functions/invocations/{invocationId}/logs:
+    get:
+      description: Returns ordered log entries for a function invocation
+      parameters:
+      - description: Invocation ID
+        in: path
+        name: invocationId
+        required: true
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Items per page
+        in: query
+        name: perPage
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_shared_pagination.Paginated-hyperstrate_server_internal_modules_functions_application_LogResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_functions_interfaces_http.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_functions_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List invocation logs
+      tags:
+      - hyperstrate
+      - functions
+  /functions/runner-pools:
+    post:
+      consumes:
+      - application/json
+      description: Creates a runner pool and returns its one-time bootstrap token
+      parameters:
+      - description: Runner pool input
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_functions_application.CreateRunnerPoolInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_functions_application.RunnerPoolResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_functions_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a runner pool
+      tags:
+      - hyperstrate
+      - functions
+  /functions/runner/agents/heartbeat:
+    post:
+      consumes:
+      - application/json
+      description: Authenticates a runner session, updates heartbeat/capabilities,
+        and renews the session expiry
+      parameters:
+      - description: Runner heartbeat input
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_functions_application.HeartbeatRunnerAgentInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_functions_application.RunnerAgentHeartbeatResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_functions_interfaces_http.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_modules_functions_interfaces_http.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_functions_interfaces_http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Heartbeat a runner agent
+      tags:
+      - hyperstrate
+      - functions
+  /functions/runner/agents/register:
+    post:
+      consumes:
+      - application/json
+      description: Exchanges a runner-pool bootstrap token for a runner session token
+      parameters:
+      - description: Runner registration input
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_functions_application.RegisterRunnerAgentInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_functions_application.RunnerAgentRegistrationResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_functions_interfaces_http.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_functions_interfaces_http.ErrorResponse'
+      summary: Register a runner agent
+      tags:
+      - hyperstrate
+      - functions
+  /functions/runner/invocations/{invocationId}/complete:
+    post:
+      consumes:
+      - application/json
+      description: Authenticates a runner session and records invocation status, result,
+        or error
+      parameters:
+      - description: Invocation ID
+        in: path
+        name: invocationId
+        required: true
+        type: string
+      - description: Completion input
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_functions_application.CompleteInvocationInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_functions_application.InvocationResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_functions_interfaces_http.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_functions_interfaces_http.ErrorResponse'
+      summary: Complete a leased function invocation
+      tags:
+      - hyperstrate
+      - functions
+  /functions/runner/invocations/{invocationId}/logs:
+    post:
+      consumes:
+      - application/json
+      description: Appends a runner-authenticated runtime log line for an invocation
+        lease
+      parameters:
+      - description: Invocation ID
+        in: path
+        name: invocationId
+        required: true
+        type: string
+      - description: Runner log entry
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_functions_application.AppendRunnerLogInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_functions_application.LogResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_functions_interfaces_http.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_functions_interfaces_http.ErrorResponse'
+      summary: Append an invocation log entry
+      tags:
+      - hyperstrate
+      - functions
+  /functions/runner/invocations/lease:
+    post:
+      consumes:
+      - application/json
+      description: Authenticates a runner session and assigns the next queued invocation
+        in its organisation
+      parameters:
+      - description: Lease input
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/hyperstrate_server_internal_modules_functions_application.LeaseInvocationInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hyperstrate_server_internal_modules_functions_application.InvocationResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_modules_functions_interfaces_http.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_modules_functions_interfaces_http.ErrorResponse'
+      summary: Lease the next queued function invocation
+      tags:
+      - hyperstrate
+      - functions
   /health/providers:
     get:
       description: Returns the last health-check result for every registered model
