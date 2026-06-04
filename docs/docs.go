@@ -4328,6 +4328,582 @@ const docTemplate = `{
                 }
             }
         },
+        "/functions/apps": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Creates a functions app owned by the authenticated organisation",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "hyperstrate",
+                    "functions"
+                ],
+                "summary": "Create a functions app",
+                "parameters": [
+                    {
+                        "description": "App input",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/hyperstrate_server_internal_modules_functions_application.CreateAppInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/hyperstrate_server_internal_modules_functions_application.AppResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_modules_functions_interfaces_http.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/functions/apps/{appId}/functions": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Creates a function and first revision under an app",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "hyperstrate",
+                    "functions"
+                ],
+                "summary": "Deploy a function",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Functions app ID",
+                        "name": "appId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Function deployment",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/hyperstrate_server_internal_modules_functions_application.DeployFunctionInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/hyperstrate_server_internal_modules_functions_application.FunctionResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_modules_functions_interfaces_http.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_modules_functions_interfaces_http.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/functions/invocations/{invocationId}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns a function invocation by ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "hyperstrate",
+                    "functions"
+                ],
+                "summary": "Get an invocation",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Invocation ID",
+                        "name": "invocationId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/hyperstrate_server_internal_modules_functions_application.InvocationResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_modules_functions_interfaces_http.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_modules_functions_interfaces_http.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/functions/invocations/{invocationId}/logs": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns ordered log entries for a function invocation",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "hyperstrate",
+                    "functions"
+                ],
+                "summary": "List invocation logs",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Invocation ID",
+                        "name": "invocationId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page",
+                        "name": "perPage",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/hyperstrate_server_internal_shared_pagination.Paginated-hyperstrate_server_internal_modules_functions_application_LogResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_modules_functions_interfaces_http.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_modules_functions_interfaces_http.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/functions/runner-pools": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Creates a runner pool and returns its one-time bootstrap token",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "hyperstrate",
+                    "functions"
+                ],
+                "summary": "Create a runner pool",
+                "parameters": [
+                    {
+                        "description": "Runner pool input",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/hyperstrate_server_internal_modules_functions_application.CreateRunnerPoolInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/hyperstrate_server_internal_modules_functions_application.RunnerPoolResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_modules_functions_interfaces_http.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/functions/runner/agents/heartbeat": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Authenticates a runner session, updates heartbeat/capabilities, and renews the session expiry",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "hyperstrate",
+                    "functions"
+                ],
+                "summary": "Heartbeat a runner agent",
+                "parameters": [
+                    {
+                        "description": "Runner heartbeat input",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/hyperstrate_server_internal_modules_functions_application.HeartbeatRunnerAgentInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/hyperstrate_server_internal_modules_functions_application.RunnerAgentHeartbeatResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_modules_functions_interfaces_http.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/internal_modules_functions_interfaces_http.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_modules_functions_interfaces_http.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/functions/runner/agents/register": {
+            "post": {
+                "description": "Exchanges a runner-pool bootstrap token for a runner session token",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "hyperstrate",
+                    "functions"
+                ],
+                "summary": "Register a runner agent",
+                "parameters": [
+                    {
+                        "description": "Runner registration input",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/hyperstrate_server_internal_modules_functions_application.RegisterRunnerAgentInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/hyperstrate_server_internal_modules_functions_application.RunnerAgentRegistrationResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_modules_functions_interfaces_http.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_modules_functions_interfaces_http.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/functions/runner/invocations/lease": {
+            "post": {
+                "description": "Authenticates a runner session and assigns the next queued invocation in its organisation",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "hyperstrate",
+                    "functions"
+                ],
+                "summary": "Lease the next queued function invocation",
+                "parameters": [
+                    {
+                        "description": "Lease input",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/hyperstrate_server_internal_modules_functions_application.LeaseInvocationInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/hyperstrate_server_internal_modules_functions_application.InvocationResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_modules_functions_interfaces_http.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_modules_functions_interfaces_http.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/functions/runner/invocations/{invocationId}/complete": {
+            "post": {
+                "description": "Authenticates a runner session and records invocation status, result, or error",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "hyperstrate",
+                    "functions"
+                ],
+                "summary": "Complete a leased function invocation",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Invocation ID",
+                        "name": "invocationId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Completion input",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/hyperstrate_server_internal_modules_functions_application.CompleteInvocationInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/hyperstrate_server_internal_modules_functions_application.InvocationResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_modules_functions_interfaces_http.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_modules_functions_interfaces_http.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/functions/runner/invocations/{invocationId}/logs": {
+            "post": {
+                "description": "Appends a runner-authenticated runtime log line for an invocation lease",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "hyperstrate",
+                    "functions"
+                ],
+                "summary": "Append an invocation log entry",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Invocation ID",
+                        "name": "invocationId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Runner log entry",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/hyperstrate_server_internal_modules_functions_application.AppendRunnerLogInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/hyperstrate_server_internal_modules_functions_application.LogResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_modules_functions_interfaces_http.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_modules_functions_interfaces_http.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/functions/{functionId}/invocations": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Queues a function invocation",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "hyperstrate",
+                    "functions"
+                ],
+                "summary": "Invoke a function",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Function ID",
+                        "name": "functionId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Invocation request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/hyperstrate_server_internal_modules_functions_application.InvokeFunctionInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "$ref": "#/definitions/hyperstrate_server_internal_modules_functions_application.InvocationResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_modules_functions_interfaces_http.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_modules_functions_interfaces_http.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/health/providers": {
             "get": {
                 "security": [
@@ -7846,6 +8422,683 @@ const docTemplate = `{
                 "UserRoleMember"
             ]
         },
+        "hyperstrate_server_internal_modules_functions_application.AppResponse": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "modifiedAt": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "hyperstrate_server_internal_modules_functions_application.AppendRunnerLogInput": {
+            "type": "object",
+            "required": [
+                "leaseId",
+                "message",
+                "stream"
+            ],
+            "properties": {
+                "agentId": {
+                    "type": "string"
+                },
+                "leaseId": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "seq": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "sessionToken": {
+                    "type": "string"
+                },
+                "stream": {
+                    "enum": [
+                        "stdout",
+                        "stderr",
+                        "system"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/hyperstrate_server_internal_modules_functions_domain.LogStream"
+                        }
+                    ]
+                },
+                "truncated": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "hyperstrate_server_internal_modules_functions_application.AutoscalingSpec": {
+            "type": "object",
+            "properties": {
+                "maxConcurrency": {
+                    "type": "integer"
+                },
+                "maxContainers": {
+                    "type": "integer"
+                },
+                "minContainers": {
+                    "type": "integer"
+                },
+                "scaleDownAfterSecs": {
+                    "type": "integer"
+                }
+            }
+        },
+        "hyperstrate_server_internal_modules_functions_application.CompleteInvocationInput": {
+            "type": "object",
+            "required": [
+                "leaseId",
+                "status"
+            ],
+            "properties": {
+                "agentId": {
+                    "type": "string"
+                },
+                "error": {
+                    "type": "string",
+                    "maxLength": 4000
+                },
+                "leaseId": {
+                    "type": "string"
+                },
+                "result": {
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "sessionToken": {
+                    "type": "string"
+                },
+                "status": {
+                    "enum": [
+                        "running",
+                        "succeeded",
+                        "failed",
+                        "timed_out",
+                        "canceled"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/hyperstrate_server_internal_modules_functions_domain.InvocationStatus"
+                        }
+                    ]
+                }
+            }
+        },
+        "hyperstrate_server_internal_modules_functions_application.CreateAppInput": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "description": {
+                    "type": "string",
+                    "maxLength": 2000
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 255
+                }
+            }
+        },
+        "hyperstrate_server_internal_modules_functions_application.CreateRunnerPoolInput": {
+            "type": "object",
+            "required": [
+                "name",
+                "provider"
+            ],
+            "properties": {
+                "capabilities": {
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "provider": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "region": {
+                    "type": "string",
+                    "maxLength": 100
+                }
+            }
+        },
+        "hyperstrate_server_internal_modules_functions_application.DeployFunctionInput": {
+            "type": "object",
+            "required": [
+                "entrypoint",
+                "image",
+                "name"
+            ],
+            "properties": {
+                "autoscaling": {
+                    "$ref": "#/definitions/hyperstrate_server_internal_modules_functions_application.AutoscalingSpec"
+                },
+                "entrypoint": {
+                    "type": "string",
+                    "maxLength": 512
+                },
+                "image": {
+                    "$ref": "#/definitions/hyperstrate_server_internal_modules_functions_application.ImageSpec"
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "provider": {
+                    "$ref": "#/definitions/hyperstrate_server_internal_modules_functions_application.ProviderPlacementSpec"
+                },
+                "runtime": {
+                    "$ref": "#/definitions/hyperstrate_server_internal_modules_functions_application.RuntimeSpec"
+                },
+                "secrets": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/hyperstrate_server_internal_modules_functions_application.SecretMountSpec"
+                    }
+                },
+                "security": {
+                    "$ref": "#/definitions/hyperstrate_server_internal_modules_functions_application.SecuritySpec"
+                },
+                "volumes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/hyperstrate_server_internal_modules_functions_application.VolumeMountSpec"
+                    }
+                }
+            }
+        },
+        "hyperstrate_server_internal_modules_functions_application.FunctionResponse": {
+            "type": "object",
+            "properties": {
+                "activeRevisionId": {
+                    "type": "string"
+                },
+                "appId": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "entrypoint": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "modifiedAt": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/hyperstrate_server_internal_modules_functions_domain.FunctionStatus"
+                }
+            }
+        },
+        "hyperstrate_server_internal_modules_functions_application.HeartbeatRunnerAgentInput": {
+            "type": "object",
+            "properties": {
+                "agentId": {
+                    "type": "string"
+                },
+                "capabilities": {
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "sessionToken": {
+                    "type": "string"
+                }
+            }
+        },
+        "hyperstrate_server_internal_modules_functions_application.ImageSpec": {
+            "type": "object",
+            "properties": {
+                "base": {
+                    "type": "string"
+                },
+                "commands": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "packages": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "hyperstrate_server_internal_modules_functions_application.InvocationResponse": {
+            "type": "object",
+            "properties": {
+                "appId": {
+                    "type": "string"
+                },
+                "attempt": {
+                    "type": "integer"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "error": {
+                    "type": "string"
+                },
+                "finishedAt": {
+                    "type": "string"
+                },
+                "functionId": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "idempotencyKey": {
+                    "type": "string"
+                },
+                "leaseExpiresAt": {
+                    "type": "string"
+                },
+                "leaseId": {
+                    "type": "string"
+                },
+                "maxAttempts": {
+                    "type": "integer"
+                },
+                "mode": {
+                    "$ref": "#/definitions/hyperstrate_server_internal_modules_functions_domain.InvocationMode"
+                },
+                "modifiedAt": {
+                    "type": "string"
+                },
+                "payload": {
+                    "$ref": "#/definitions/hyperstrate_server_internal_shared_dbtype.JSONMap"
+                },
+                "result": {
+                    "$ref": "#/definitions/hyperstrate_server_internal_shared_dbtype.JSONMap"
+                },
+                "revisionId": {
+                    "type": "string"
+                },
+                "runnerId": {
+                    "type": "string"
+                },
+                "startedAt": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/hyperstrate_server_internal_modules_functions_domain.InvocationStatus"
+                }
+            }
+        },
+        "hyperstrate_server_internal_modules_functions_application.InvokeFunctionInput": {
+            "type": "object",
+            "properties": {
+                "idempotencyKey": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "maxAttempts": {
+                    "type": "integer",
+                    "maximum": 100,
+                    "minimum": 0
+                },
+                "mode": {
+                    "enum": [
+                        "async"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/hyperstrate_server_internal_modules_functions_domain.InvocationMode"
+                        }
+                    ]
+                },
+                "payload": {
+                    "type": "object",
+                    "additionalProperties": {}
+                }
+            }
+        },
+        "hyperstrate_server_internal_modules_functions_application.LeaseInvocationInput": {
+            "type": "object",
+            "properties": {
+                "agentId": {
+                    "type": "string"
+                },
+                "leaseSecs": {
+                    "type": "integer",
+                    "maximum": 3600,
+                    "minimum": 0
+                },
+                "sessionToken": {
+                    "type": "string"
+                }
+            }
+        },
+        "hyperstrate_server_internal_modules_functions_application.LogResponse": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "invocationId": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "seq": {
+                    "type": "integer"
+                },
+                "stream": {
+                    "$ref": "#/definitions/hyperstrate_server_internal_modules_functions_domain.LogStream"
+                },
+                "truncated": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "hyperstrate_server_internal_modules_functions_application.ProviderPlacementSpec": {
+            "type": "object",
+            "properties": {
+                "allowedProviders": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "regions": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "strategy": {
+                    "type": "string"
+                }
+            }
+        },
+        "hyperstrate_server_internal_modules_functions_application.RegisterRunnerAgentInput": {
+            "type": "object",
+            "required": [
+                "bootstrapToken",
+                "poolId",
+                "publicKey"
+            ],
+            "properties": {
+                "bootstrapToken": {
+                    "type": "string"
+                },
+                "capabilities": {
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "hostname": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "poolId": {
+                    "type": "string"
+                },
+                "publicKey": {
+                    "type": "string"
+                }
+            }
+        },
+        "hyperstrate_server_internal_modules_functions_application.RunnerAgentHeartbeatResponse": {
+            "type": "object",
+            "properties": {
+                "capabilities": {
+                    "$ref": "#/definitions/hyperstrate_server_internal_shared_dbtype.JSONMap"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "lastHeartbeatAt": {
+                    "type": "string"
+                },
+                "poolId": {
+                    "type": "string"
+                },
+                "sessionExpiresAt": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/hyperstrate_server_internal_modules_functions_domain.RunnerAgentStatus"
+                }
+            }
+        },
+        "hyperstrate_server_internal_modules_functions_application.RunnerAgentRegistrationResponse": {
+            "type": "object",
+            "properties": {
+                "capabilities": {
+                    "$ref": "#/definitions/hyperstrate_server_internal_shared_dbtype.JSONMap"
+                },
+                "hostname": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "poolId": {
+                    "type": "string"
+                },
+                "sessionToken": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/hyperstrate_server_internal_modules_functions_domain.RunnerAgentStatus"
+                }
+            }
+        },
+        "hyperstrate_server_internal_modules_functions_application.RunnerPoolResponse": {
+            "type": "object",
+            "properties": {
+                "bootstrapToken": {
+                    "type": "string"
+                },
+                "capabilities": {
+                    "$ref": "#/definitions/hyperstrate_server_internal_shared_dbtype.JSONMap"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "provider": {
+                    "type": "string"
+                },
+                "region": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/hyperstrate_server_internal_modules_functions_domain.RunnerPoolStatus"
+                }
+            }
+        },
+        "hyperstrate_server_internal_modules_functions_application.RuntimeSpec": {
+            "type": "object",
+            "properties": {
+                "cpu": {
+                    "type": "string"
+                },
+                "gpu": {
+                    "type": "string"
+                },
+                "memoryMb": {
+                    "type": "integer"
+                },
+                "pythonVersion": {
+                    "type": "string"
+                },
+                "timeoutSecs": {
+                    "type": "integer"
+                }
+            }
+        },
+        "hyperstrate_server_internal_modules_functions_application.SecretMountSpec": {
+            "type": "object",
+            "properties": {
+                "env": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "hyperstrate_server_internal_modules_functions_application.SecuritySpec": {
+            "type": "object",
+            "properties": {
+                "allowOutboundHosts": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "networkPolicy": {
+                    "type": "string"
+                },
+                "readOnlyRootFs": {
+                    "type": "boolean"
+                },
+                "runAsNonRoot": {
+                    "type": "boolean"
+                },
+                "sandbox": {
+                    "type": "string"
+                }
+            }
+        },
+        "hyperstrate_server_internal_modules_functions_application.VolumeMountSpec": {
+            "type": "object",
+            "properties": {
+                "mountPath": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "readOnly": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "hyperstrate_server_internal_modules_functions_domain.FunctionStatus": {
+            "type": "string",
+            "enum": [
+                "deploying",
+                "ready",
+                "failed"
+            ],
+            "x-enum-varnames": [
+                "FunctionStatusDeploying",
+                "FunctionStatusReady",
+                "FunctionStatusFailed"
+            ]
+        },
+        "hyperstrate_server_internal_modules_functions_domain.InvocationMode": {
+            "type": "string",
+            "enum": [
+                "sync",
+                "async"
+            ],
+            "x-enum-varnames": [
+                "InvocationModeSync",
+                "InvocationModeAsync"
+            ]
+        },
+        "hyperstrate_server_internal_modules_functions_domain.InvocationStatus": {
+            "type": "string",
+            "enum": [
+                "queued",
+                "assigned",
+                "starting",
+                "running",
+                "succeeded",
+                "failed",
+                "canceled",
+                "timed_out",
+                "expired",
+                "retrying",
+                "dead_lettered"
+            ],
+            "x-enum-varnames": [
+                "InvocationStatusQueued",
+                "InvocationStatusAssigned",
+                "InvocationStatusStarting",
+                "InvocationStatusRunning",
+                "InvocationStatusSucceeded",
+                "InvocationStatusFailed",
+                "InvocationStatusCanceled",
+                "InvocationStatusTimedOut",
+                "InvocationStatusExpired",
+                "InvocationStatusRetrying",
+                "InvocationStatusDeadLettered"
+            ]
+        },
+        "hyperstrate_server_internal_modules_functions_domain.LogStream": {
+            "type": "string",
+            "enum": [
+                "stdout",
+                "stderr",
+                "system"
+            ],
+            "x-enum-varnames": [
+                "LogStreamStdout",
+                "LogStreamStderr",
+                "LogStreamSystem"
+            ]
+        },
+        "hyperstrate_server_internal_modules_functions_domain.RunnerAgentStatus": {
+            "type": "string",
+            "enum": [
+                "online",
+                "offline",
+                "revoked"
+            ],
+            "x-enum-varnames": [
+                "RunnerAgentStatusOnline",
+                "RunnerAgentStatusOffline",
+                "RunnerAgentStatusRevoked"
+            ]
+        },
+        "hyperstrate_server_internal_modules_functions_domain.RunnerPoolStatus": {
+            "type": "string",
+            "enum": [
+                "active",
+                "revoked"
+            ],
+            "x-enum-varnames": [
+                "RunnerPoolStatusActive",
+                "RunnerPoolStatusRevoked"
+            ]
+        },
         "hyperstrate_server_internal_modules_observability_domain.ABVariantStats": {
             "type": "object",
             "properties": {
@@ -9796,6 +11049,24 @@ const docTemplate = `{
                 }
             }
         },
+        "hyperstrate_server_internal_shared_pagination.Paginated-hyperstrate_server_internal_modules_functions_application_LogResponse": {
+            "type": "object",
+            "required": [
+                "items",
+                "meta"
+            ],
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/hyperstrate_server_internal_modules_functions_application.LogResponse"
+                    }
+                },
+                "meta": {
+                    "$ref": "#/definitions/hyperstrate_server_internal_shared_pagination.PaginatedMeta"
+                }
+            }
+        },
         "hyperstrate_server_internal_shared_pagination.Paginated-hyperstrate_server_internal_modules_observability_domain_AgentSessionEvent": {
             "type": "object",
             "required": [
@@ -10449,6 +11720,23 @@ const docTemplate = `{
                 },
                 "teamId": {
                     "type": "string"
+                }
+            }
+        },
+        "internal_modules_functions_interfaces_http.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                },
+                "fields": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
                 }
             }
         },

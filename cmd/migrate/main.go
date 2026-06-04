@@ -21,6 +21,7 @@ import (
 
 	aiDomain "hyperstrate/server/internal/modules/ai/domain"
 	authDomain "hyperstrate/server/internal/modules/auth/domain"
+	functionsDomain "hyperstrate/server/internal/modules/functions/domain"
 	obsDomain "hyperstrate/server/internal/modules/observability/domain"
 	promptDomain "hyperstrate/server/internal/modules/prompts/domain"
 	routerDomain "hyperstrate/server/internal/modules/router/domain"
@@ -78,5 +79,13 @@ func migrationModels() []any {
 		&obsDomain.AgentSessionEvent{},
 		&obsDomain.ToolCallArchive{},
 		&obsDomain.CompressionEvent{},
+		&functionsDomain.App{},
+		&functionsDomain.Function{},
+		&functionsDomain.FunctionRevision{},
+		&functionsDomain.FunctionBuild{},
+		&functionsDomain.Invocation{},
+		&functionsDomain.InvocationLog{},
+		&functionsDomain.RunnerPool{},
+		&functionsDomain.RunnerAgent{},
 	}
 }

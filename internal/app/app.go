@@ -14,6 +14,7 @@ import (
 	dbmodule "hyperstrate/server/internal/db"
 	"hyperstrate/server/internal/modules/ai"
 	"hyperstrate/server/internal/modules/auth"
+	"hyperstrate/server/internal/modules/functions"
 	"hyperstrate/server/internal/modules/observability"
 	"hyperstrate/server/internal/modules/prompts"
 	"hyperstrate/server/internal/modules/router"
@@ -34,6 +35,7 @@ func Module() fx.Option {
 		),
 		ai.Module(),
 		auth.Module(),
+		functions.Module(),
 		prompts.Module(),
 		router.Module(),
 		observability.Module(),
