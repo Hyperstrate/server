@@ -17,6 +17,11 @@ bootstrap
 worker-bootstrap
 api
 
+# Python local environments/cache
+.venv/
+__pycache__/
+*.py[cod]
+
 # Local agent/editor state
 .claude
 .agents
